@@ -38,7 +38,7 @@
 </div>
 
 <script>
-    // CORRECTED PATH: Points directly to the folder in your repo
+    // Using relative path to avoid the /-I--Website/ prefix issue
     const BASE_PATH = "-I-Data/"; 
     const POWER_FLOOR = 35000000;
     const MIN_SHEETS = 2; 
@@ -75,8 +75,8 @@
     async function init() {
         createMetricButtons();
         try {
-            // Fetches your JSON file from the data folder
-            const res = await fetch('data/files.json');
+            // Added ./ to ensure it looks in the local data folder
+            const res = await fetch('./data/files.json');
             if (!res.ok) throw new Error('Could not load files.json');
             
             fileListData = await res.json();
@@ -132,7 +132,7 @@
     async function loadDynamicAllKvks() {
         const latestFolder = fileListData.iDataFolders[fileListData.iDataFolders.length - 1];
         const latestFiles = latestFolder.files;
-        const latestPath = `${BASE_PATH}${latestFolder.name}/${latestFiles[latestFiles.length - 1]}`;
+        const latestPath = `${BASE_PATH}${encodeURIComponent(latestFolder.name)}/${latestFiles[latestFiles.length - 1]}`;
         const latestSheetData = parseCSV(await (await fetch(latestPath)).text());
         const activeIds = Object.keys(latestSheetData).filter(id => parseInt(latestSheetData[id].highest_power) >= POWER_FLOOR);
 
@@ -141,8 +141,8 @@
             const files = folderMeta.files;
             if (files.length < 2) continue;
 
-            const firstFile = `${BASE_PATH}${folderName}/${files[0]}`;
-            const lastFile = `${BASE_PATH}${folderName}/${files[files.length - 1]}`;
+            const firstFile = `${BASE_PATH}${encodeURIComponent(folderName)}/${files[0]}`;
+            const lastFile = `${BASE_PATH}${encodeURIComponent(folderName)}/${files[files.length - 1]}`;
 
             const [textOld, textNew] = await Promise.all([
                 fetch(firstFile).then(r => r.text()),
@@ -178,7 +178,8 @@
         if (!folderMeta) return;
 
         const files = folderMeta.files;
-        const path = `${BASE_PATH}${folderName}/`;
+        // Using encodeURIComponent to handle spaces in folder names correctly for GitHub
+        const path = `${BASE_PATH}${encodeURIComponent(folderName)}/`;
         
         const latestData = parseCSV(await (await fetch(path + files[files.length - 1])).text());
         const activeIds = Object.keys(latestData).filter(id => parseInt(latestData[id].highest_power) >= POWER_FLOOR);

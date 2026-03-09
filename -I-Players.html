@@ -6,6 +6,74 @@
     <title>Intelligence Core // DRILLDOWN_V5</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* CORE LAYERING & STICKY FIXES */
+        .app-container {
+            position: relative;
+            z-index: 1;
+        }
+
+        .sticky-wrapper {
+            position: sticky; 
+            top: 0; 
+            z-index: 999; 
+            padding: 10px 0 20px 0;
+            background: transparent; 
+            /* High-end frosted glass effect */
+            backdrop-filter: blur(12px) saturate(150%);
+            -webkit-backdrop-filter: blur(12px) saturate(150%);
+        }
+
+        .primary-controls {
+            background: transparent; 
+            padding: 10px 0; 
+            border: none; 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            align-items: center;
+            margin-bottom: 20px;
+            box-shadow: none; 
+        }
+
+        .player-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 25px;
+            padding: 40px 0; 
+            position: relative;
+        }
+
+        .growth-card {
+            position: relative;
+            z-index: 10;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+        }
+
+        .growth-card:hover {
+            z-index: 11; 
+            transform: translateY(-8px);
+        }
+
+        .metric-bar { 
+            display: flex; 
+            gap: 6px; 
+            overflow-x: auto; 
+            padding: 5px 0; 
+            scrollbar-width: none; 
+        }
+
+        .metric-bar::-webkit-scrollbar { display: none; }
+
+        html {
+            overflow-y: scroll;
+        }
+
+        .solo-header {
+            grid-column: 1 / -1;
+            padding: 40px 0;
+        }
+    </style>
 </head>
 <body>
 
@@ -14,27 +82,29 @@
 </div>
 
 <div class="app-container">
-    <div class="header-nav" id="headerNav">
+    <div class="header-nav" id="headerNav" style="position: relative; z-index: 1000;">
         <div id="navActionContainer">
             <button class="exit-btn" onclick="window.location.href='index.html'">← SYSTEM_RETURN</button>
         </div>
         <div id="subjectCount" style="font-size: 0.75rem; font-weight: 900; color: var(--accent-purple); letter-spacing: 2px;">ACTIVE_MEMBERS // --</div>
     </div>
 
-    <div class="sticky-wrapper" id="controlsWrapper">
-        <div class="primary-controls">
-            <div class="custom-select-wrapper">
-                <select id="seasonFolder" onchange="handleFolderChange()">
-                    <option value="">-- SELECT DATA FOLDER --</option>
-                    <option value="ALL_KVKS">★ ALL KVKS</option>
-                </select>
+    <div id="drilldownContent">
+        <div class="sticky-wrapper" id="controlsWrapper">
+            <div class="primary-controls">
+                <div class="custom-select-wrapper">
+                    <select id="seasonFolder" onchange="handleFolderChange()">
+                        <option value="">-- SELECT DATA FOLDER --</option>
+                        <option value="ALL_KVKS">★ ALL KVKS</option>
+                    </select>
+                </div>
+                <input type="text" id="playerSearch" class="search-box" placeholder="SEARCH_LORDS_BY_ID_OR_NAME..." oninput="renderDisplay()">
             </div>
-            <input type="text" id="playerSearch" class="search-box" placeholder="SEARCH_LORDS_BY_ID_OR_NAME..." oninput="renderDisplay()">
+            <div class="metric-bar" id="metricBar"></div>
         </div>
-        <div class="metric-bar" id="metricBar"></div>
-    </div>
 
-    <div class="player-grid" id="mainGrid"></div>
+        <div class="player-grid" id="mainGrid"></div>
+    </div>
 </div>
 
 <script>
@@ -49,20 +119,11 @@
     let selectedPlayerId = null;
 
     const metrics = {
-        'highest_power': 'HIGHEST POWER',
-        'merits': 'MERITS',
-        'units_killed': 'TOTAL KILLS',
-        'killcount_t5': 'T5 KILLS',
-        'killcount_t4': 'T4 KILLS',
-        'killcount_t3': 'T3 KILLS',
-        'killcount_t2': 'T2 KILLS',
-        'killcount_t1': 'T1 KILLS',
-        'units_dead': 'DEADS',
-        'units_healed': 'HEALED',
-        'gold_spent': 'GOLD SPENT',
-        'wood_spent': 'WOOD SPENT',
-        'stone_spent': 'STONE SPENT',
-        'mana_spent': 'MANA SPENT'
+        'highest_power': 'HIGHEST POWER', 'merits': 'MERITS', 'units_killed': 'TOTAL KILLS',
+        'killcount_t5': 'T5 KILLS', 'killcount_t4': 'T4 KILLS', 'killcount_t3': 'T3 KILLS',
+        'killcount_t2': 'T2 KILLS', 'killcount_t1': 'T1 KILLS', 'units_dead': 'DEADS',
+        'units_healed': 'HEALED', 'gold_spent': 'GOLD SPENT', 'wood_spent': 'WOOD SPENT',
+        'stone_spent': 'STONE SPENT', 'mana_spent': 'MANA SPENT'
     };
 
     function cleanName(raw) {
@@ -74,10 +135,7 @@
         createMetricButtons();
         try {
             const res = await fetch('data/files.json');
-            if (!res.ok) throw new Error('Could not load files.json');
-            
             fileListData = await res.json();
-
             const selector = document.getElementById('seasonFolder');
             fileListData.iDataFolders.forEach(folder => {
                 const opt = document.createElement('option');
@@ -85,10 +143,8 @@
                 opt.textContent = cleanName(folder.name);
                 selector.appendChild(opt);
             });
-
             selector.value = "ALL_KVKS";
             handleFolderChange();
-
         } catch(e) { console.error("Init failed", e); }
     }
 
@@ -115,12 +171,10 @@
         document.getElementById('loader').style.display = 'flex';
         weeklyData = {}; 
         isAllKvksMode = (val === 'ALL_KVKS');
-        
         try {
             if (isAllKvksMode) await loadDynamicAllKvks();
             else await loadSingleFolder(val);
         } catch (e) { console.error("Load Error:", e); }
-        
         document.getElementById('loader').style.display = 'none';
         renderDisplay();
     }
@@ -128,10 +182,8 @@
     async function loadDynamicAllKvks() {
         const latestFolder = fileListData.iDataFolders[fileListData.iDataFolders.length - 1];
         const latestFiles = latestFolder.files;
-        // Fix: Case-correction for KVK -> KvK to match Repo folders
         const fixedFolderName = latestFolder.name.replace('KVK', 'KvK');
         const latestPath = BASE_PATH + fixedFolderName + "/" + latestFiles[latestFiles.length - 1];
-        
         const latestResp = await fetch(latestPath);
         if (!latestResp.ok) return;
         const latestSheetData = parseCSV(await latestResp.text());
@@ -141,17 +193,10 @@
             const folderName = folderMeta.name.replace('KVK', 'KvK');
             const files = folderMeta.files;
             if (files.length < 2) continue;
-
             const folderURL = BASE_PATH + folderName + "/";
-            const firstFile = folderURL + files[0];
-            const lastFile = folderURL + files[files.length - 1];
-
-            const [respOld, respNew] = await Promise.all([fetch(firstFile), fetch(lastFile)]);
+            const [respOld, respNew] = await Promise.all([fetch(folderURL + files[0]), fetch(folderURL + files[files.length - 1])]);
             if (!respOld.ok || !respNew.ok) continue;
-
-            const [textOld, textNew] = await Promise.all([respOld.text(), respNew.text()]);
-            const dataOld = parseCSV(textOld);
-            const dataNew = parseCSV(textNew);
+            const [dataOld, dataNew] = [parseCSV(await respOld.text()), parseCSV(await respNew.text())];
 
             activeIds.forEach(id => {
                 if (!weeklyData[id]) { 
@@ -177,12 +222,9 @@
     async function loadSingleFolder(folderName) {
         const folderMeta = fileListData.iDataFolders.find(f => f.name === folderName);
         if (!folderMeta) return;
-
         const files = folderMeta.files;
-        // Fix: Case-correction for KVK -> KvK to match Repo folders
         const fixedFolder = folderName.replace('KVK', 'KvK');
         const pathPrefix = BASE_PATH + fixedFolder + "/";
-        
         const latestResp = await fetch(pathPrefix + files[files.length - 1]);
         if (!latestResp.ok) return;
         const latestData = parseCSV(await latestResp.text());
@@ -194,9 +236,7 @@
             const d = parseCSV(await r.text());
             activeIds.forEach(id => {
                 if (!d[id]) return;
-                if (!weeklyData[id]) { 
-                    weeklyData[id] = { starts: [], ends: [], timeline: [], latestStats: latestData[id], sheetCount: 0 }; 
-                }
+                if (!weeklyData[id]) weeklyData[id] = { starts: [], ends: [], timeline: [], latestStats: latestData[id], sheetCount: 0 };
                 let e = { label: f.replace('.csv','') };
                 Object.keys(metrics).forEach(m => e[m] = parseInt(d[id][m]) || 0);
                 weeklyData[id].timeline.push(e);
@@ -217,7 +257,6 @@
             const chart = Chart.getChart(canvas);
             if (chart) chart.destroy();
         });
-
         grid.innerHTML = "";
 
         if (selectedPlayerId && weeklyData[selectedPlayerId]) {
@@ -231,12 +270,10 @@
         controls.style.display = 'block';
         
         const filtered = Object.values(weeklyData).filter(p => p.sheetCount >= MIN_SHEETS);
-
         const sorted = filtered.sort((a, b) => {
             const valA = (a.timeline?.length > 0) ? a.timeline[a.timeline.length - 1][currentSortMetric] : 0;
             const valB = (b.timeline?.length > 0) ? b.timeline[b.timeline.length - 1][currentSortMetric] : 0;
-            if (valB !== valA) return valB - valA;
-            return b.sheetCount - a.sheetCount;
+            return valB - valA || b.sheetCount - a.sheetCount;
         });
 
         document.getElementById('subjectCount').textContent = `ACTIVE_MEMBERS // ${sorted.length}`;
@@ -255,20 +292,9 @@
             card.onclick = () => { selectedPlayerId = lordId; renderDisplay(); };
             
             const currentVal = data.timeline[data.timeline.length - 1][currentSortMetric] || 0;
-            let delta = 0;
-            let deltaContext = "";
-
-            if (isAllKvksMode) {
-                const newestEnd = data.ends[data.ends.length - 1][currentSortMetric] || 0;
-                const prevEnd = data.ends.length > 1 ? (data.ends[data.ends.length - 2][currentSortMetric] || 0) : 0;
-                delta = newestEnd - prevEnd;
-                deltaContext = "compared to end of last KVK";
-            } else {
-                const last = data.timeline[data.timeline.length - 1][currentSortMetric] || 0;
-                const first = data.timeline[0][currentSortMetric] || 0;
-                delta = last - first;
-                deltaContext = "since start of KVK";
-            }
+            let delta = isAllKvksMode ? 
+                (currentVal - (data.ends.length > 1 ? data.ends[data.ends.length - 2][currentSortMetric] : 0)) : 
+                (currentVal - (data.timeline[0][currentSortMetric] || 0));
 
             card.innerHTML = `
                 <div class="rank-banner ${rBannerClass}">#${rank}</div>
@@ -281,7 +307,7 @@
                     <div class="stat-label">${metrics[currentSortMetric]}</div>
                 </div>
                 <div style="font-weight:900; font-size:0.75rem;" class="${delta >= 0 ? 'positive' : 'negative'}">
-                    ${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()} ${deltaContext}
+                    ${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()} ${isAllKvksMode ? 'vs last KVK' : 'this KVK'}
                 </div>
                 <div class="chart-container"><canvas id="chart-${lordId}"></canvas></div>
             `;
@@ -293,82 +319,39 @@
     function renderSoloMode(id) {
         const grid = document.getElementById('mainGrid');
         const data = weeklyData[id];
-        
         const header = document.createElement('div');
         header.className = 'solo-header';
-        header.innerHTML = `
-            <div>
-                <div class="stat-label">MEMBER_ANALYSIS</div>
-                <h2 style="font-size:3rem; margin:10px 0; color:var(--text-title);">${data.latestStats.name}</h2>
-                <div class="stat-label">MEMBER_ID: ${id}</div>
-            </div>
-        `;
+        header.innerHTML = `<div><div class="stat-label">MEMBER_ANALYSIS</div><h2 style="font-size:3.5rem; margin:10px 0; color:var(--text-title);">${data.latestStats.name}</h2><div class="stat-label">MEMBER_ID: ${id}</div></div>`;
         grid.appendChild(header);
 
         Object.keys(metrics).forEach(mKey => {
             const miniCard = document.createElement('div');
-            miniCard.className = "growth-card";
-            miniCard.style.cursor = "default";
-            
+            miniCard.className = "growth-card glow-purple"; miniCard.style.cursor = "default";
             let graphTimeline = (isAllKvksMode) ? data.ends : data.timeline;
             const curVal = graphTimeline[graphTimeline.length - 1][mKey] || 0;
-            
-            let delta = 0;
-            let deltaContext = "";
+            let delta = isAllKvksMode ? (curVal - (graphTimeline.length > 1 ? graphTimeline[graphTimeline.length - 2][mKey] : 0)) : (curVal - (graphTimeline[0][mKey] || 0));
 
-            if (isAllKvksMode) {
-                const last = graphTimeline[graphTimeline.length - 1][mKey] || 0;
-                const prev = graphTimeline.length > 1 ? (graphTimeline[graphTimeline.length - 2][mKey] || 0) : 0;
-                delta = last - prev;
-                deltaContext = "compared to end of last KVK";
-            } else {
-                const last = graphTimeline[graphTimeline.length - 1][mKey] || 0;
-                const first = graphTimeline[0] ? (graphTimeline[0][mKey] || 0) : 0;
-                delta = last - first;
-                deltaContext = "since start of KVK";
-            }
-
-            miniCard.innerHTML = `
-                <div class="stat-label">${metrics[mKey]}</div>
-                <div class="stat-value" style="font-size:1.8rem;">${curVal.toLocaleString()}</div>
-                <div class="${delta >= 0 ? 'positive' : 'negative'}" style="font-weight:900; font-size:0.75rem; margin-top:5px;">
-                    ${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()} ${deltaContext}
-                </div>
-                <div style="height:120px; margin-top:15px;"><canvas id="solo-${mKey}"></canvas></div>
-            `;
+            miniCard.innerHTML = `<div class="stat-label">${metrics[mKey]}</div><div class="stat-value" style="font-size:1.8rem;">${curVal.toLocaleString()}</div><div class="${delta >= 0 ? 'positive' : 'negative'}" style="font-weight:900; font-size:0.75rem; margin-top:5px;">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()}</div><div style="height:120px; margin-top:15px;"><canvas id="solo-${mKey}"></canvas></div>`;
             grid.appendChild(miniCard);
             createChart(`solo-${mKey}`, data, mKey);
         });
+        window.scrollTo(0,0);
     }
 
-    function exitSoloMode() {
-        selectedPlayerId = null;
-        renderDisplay();
-    }
+    function exitSoloMode() { selectedPlayerId = null; renderDisplay(); }
 
     function createChart(canvasId, data, metricKey) {
         const el = document.getElementById(canvasId);
         if(!el) return;
         const ctx = el.getContext('2d');
         let graphTimeline = (isAllKvksMode) ? data.ends : data.timeline;
-
         new Chart(ctx, {
             type: 'line',
             data: {
                 labels: (graphTimeline || []).map(t => t.label),
-                datasets: [{
-                    data: (graphTimeline || []).map(t => t[metricKey]),
-                    borderColor: '#9333ea', pointRadius: 2, pointBackgroundColor: '#9333ea', tension: 0.3, fill: false, borderWidth: 2
-                }]
+                datasets: [{ data: (graphTimeline || []).map(t => t[metricKey]), borderColor: '#9333ea', pointRadius: 2, tension: 0.3, fill: false, borderWidth: 2 }]
             },
-            options: { 
-                responsive: true, maintainAspectRatio: false, 
-                plugins: { legend: { display: false } },
-                scales: { 
-                    x: { ticks: { color: '#9d8ba1', font: { size: 9, weight: 'bold' }, maxRotation: 45 }, grid: { display: false } }, 
-                    y: { display: false } 
-                } 
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { display: false }, grid: { display: false } }, y: { display: false } } }
         });
     }
 
@@ -379,13 +362,11 @@
         const result = {};
         lines.slice(1).forEach(line => {
             const cells = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-            const row = {}; 
-            headers.forEach((h, i) => row[h] = cells[i]);
+            const row = {}; headers.forEach((h, i) => row[h] = cells[i]);
             if (targetServers.includes(row.home_server || row.server)) result[row.lord_id || row.id] = row;
         });
         return result;
     }
-
     window.onload = init;
 </script>
 </body>

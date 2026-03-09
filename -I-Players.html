@@ -18,7 +18,7 @@
             display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px;
         }
 
-        /* UNIFIED PILL SWITCH STYLING */
+        /* EXACT SOLO-SYNCED PILL SWITCH STYLING */
         .view-toggle-container {
             display: flex; 
             align-items: center; 
@@ -33,7 +33,7 @@
         .toggle-btn {
             background: transparent;
             border: none;
-            color: #ffffff; /* Forced white to match solo view */
+            color: #ffffff !important; /* Force pure white for both buttons */
             padding: 0 18px;
             height: 100%;
             font-size: 0.65rem;
@@ -47,10 +47,9 @@
             align-items: center;
             justify-content: center;
             border-radius: 50px;
-            opacity: 0.6; /* Slight dim for inactive */
+            text-transform: uppercase;
         }
         .toggle-btn.active {
-            opacity: 1; /* Full white for active */
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
         .pill-slider {

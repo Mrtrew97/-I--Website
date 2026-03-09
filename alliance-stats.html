@@ -17,24 +17,22 @@
             top: 0; 
             z-index: 999; 
             padding: 10px 0 20px 0;
-            /* REMOVED: background and border-bottom */
-            /* KEPT: Blur effect for a floating feel */
+            background: transparent; /* Completely clear */
             backdrop-filter: blur(12px) saturate(150%);
             -webkit-backdrop-filter: blur(12px) saturate(150%);
         }
 
         .primary-controls {
-            /* Increased opacity slightly to ensure readability over cards */
-            background: rgba(15, 2, 25, 0.7); 
-            padding: 10px 15px; 
-            border-radius: 16px; 
-            border: 1px solid rgba(147, 51, 234, 0.3); 
+            background: transparent; /* Removed the semi-transparent box */
+            padding: 10px 0; 
+            border-radius: 0; 
+            border: none; /* Removed the border */
             display: flex; 
             flex-wrap: wrap; 
             gap: 10px; 
             align-items: center;
             margin-bottom: 20px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            box-shadow: none; /* Removed the shadow */
         }
 
         /* GRID OFFSET */

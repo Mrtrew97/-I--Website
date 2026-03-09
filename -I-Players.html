@@ -38,14 +38,8 @@
 </div>
 
 <script>
-    // Force a relative path based on the current URL directory
-    const getBasePath = () => {
-        const path = window.location.pathname;
-        const directory = path.substring(0, path.lastIndexOf('/'));
-        return directory + "/-I-Data/";
-    };
-
-    const BASE_PATH = "IData/"();
+    // UPDATED FOR NEW FOLDER NAME
+    const BASE_PATH = "IData/"; 
     const POWER_FLOOR = 35000000;
     const MIN_SHEETS = 2; 
     const targetServers = ["167", "509"];
@@ -136,6 +130,7 @@
         const latestFolder = fileListData.iDataFolders[fileListData.iDataFolders.length - 1];
         const latestFiles = latestFolder.files;
         const latestPath = `${BASE_PATH}${encodeURIComponent(latestFolder.name)}/${latestFiles[latestFiles.length - 1]}`;
+        
         const latestSheetData = parseCSV(await (await fetch(latestPath)).text());
         const activeIds = Object.keys(latestSheetData).filter(id => parseInt(latestSheetData[id].highest_power) >= POWER_FLOOR);
 
@@ -144,8 +139,9 @@
             const files = folderMeta.files;
             if (files.length < 2) continue;
 
-            const firstFile = `${BASE_PATH}${encodeURIComponent(folderName)}/${files[0]}`;
-            const lastFile = `${BASE_PATH}${encodeURIComponent(folderName)}/${files[files.length - 1]}`;
+            const folderURL = `${BASE_PATH}${encodeURIComponent(folderName)}/`;
+            const firstFile = folderURL + files[0];
+            const lastFile = folderURL + files[files.length - 1];
 
             const [respOld, respNew] = await Promise.all([fetch(firstFile), fetch(lastFile)]);
             if (!respOld.ok || !respNew.ok) continue;

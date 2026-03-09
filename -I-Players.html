@@ -18,27 +18,32 @@
             display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 20px;
         }
 
-        /* TOGGLE STYLING */
+        /* CUSTOM CYBER TOGGLE */
         .view-toggle-container {
-            display: none; /* Hidden by default, shown for ALL_KVKS */
-            align-items: center; gap: 10px; background: rgba(0,0,0,0.3);
-            padding: 5px 15px; border-radius: 4px; border: 1px solid var(--accent-purple);
+            display: none; 
+            align-items: center; 
+            gap: 0; 
+            border: 1px solid var(--accent-purple); 
+            border-radius: 2px;
+            overflow: hidden;
+            background: rgba(147, 51, 234, 0.05);
         }
-        .toggle-label { font-size: 0.7rem; font-weight: 900; color: var(--text-dim); }
-        .switch {
-            position: relative; display: inline-block; width: 40px; height: 20px;
+        .toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 8px 16px;
+            font-size: 0.65rem;
+            font-weight: 900;
+            cursor: pointer;
+            letter-spacing: 1px;
+            transition: all 0.3s ease;
         }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #333; transition: .4s; border-radius: 20px;
+        .toggle-btn.active {
+            background: var(--accent-purple);
+            color: #fff;
+            text-shadow: 0 0 8px rgba(255,255,255,0.5);
         }
-        .slider:before {
-            position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
-            background-color: white; transition: .4s; border-radius: 50%;
-        }
-        input:checked + .slider { background-color: var(--accent-purple); }
-        input:checked + .slider:before { transform: translateX(20px); }
 
         .player-grid {
             display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -80,12 +85,8 @@
                 <input type="text" id="playerSearch" class="search-box" placeholder="SEARCH_LORDS..." oninput="renderDisplay()">
                 
                 <div class="view-toggle-container" id="toggleWrapper">
-                    <span class="toggle-label">TOTAL</span>
-                    <label class="switch">
-                        <input type="checkbox" id="growthToggle" onchange="renderDisplay()">
-                        <span class="slider"></span>
-                    </label>
-                    <span class="toggle-label">GROWTH</span>
+                    <button id="mode-total" class="toggle-btn active" onclick="setMode('total')">TOTAL</button>
+                    <button id="mode-growth" class="toggle-btn" onclick="setMode('growth')">GROWTH</button>
                 </div>
             </div>
             <div class="metric-bar" id="metricBar"></div>
@@ -104,6 +105,7 @@
     let fileListData = {};
     let isAllKvksMode = false;
     let selectedPlayerId = null;
+    let currentViewMode = 'total'; // 'total' or 'growth'
 
     const metrics = {
         'highest_power': 'HIGHEST POWER', 'merits': 'MERITS', 'units_killed': 'TOTAL KILLS',
@@ -114,6 +116,13 @@
     };
 
     function cleanName(raw) { return raw === "ALL_KVKS" ? "★ ALL KVKS" : raw.replace(/^\d+\s*-\s*/, ''); }
+
+    function setMode(mode) {
+        currentViewMode = mode;
+        document.getElementById('mode-total').classList.toggle('active', mode === 'total');
+        document.getElementById('mode-growth').classList.toggle('active', mode === 'growth');
+        renderDisplay();
+    }
 
     async function init() {
         createMetricButtons();
@@ -181,8 +190,8 @@
             activeIds.forEach(id => {
                 if (!weeklyData[id]) weeklyData[id] = { starts: [], ends: [], timeline: [], growthTimeline: [], latestStats: latestSheetData[id], sheetCount: 0 };
                 if (dataOld[id] && dataNew[id]) {
-                    let s = { label: files[0] }; Object.keys(metrics).forEach(m => s[m] = parseInt(dataOld[id][m]) || 0);
-                    let e = { label: cleanName(folderMeta.name).split('(')[0].trim() }; 
+                    let s = { label: files[0].replace('.csv','') }; Object.keys(metrics).forEach(m => s[m] = parseInt(dataOld[id][m]) || 0);
+                    let e = { label: files[files.length - 1].replace('.csv','') }; 
                     Object.keys(metrics).forEach(m => e[m] = parseInt(dataNew[id][m]) || 0);
                     
                     let g = { label: e.label };
@@ -222,7 +231,7 @@
 
     function renderDisplay() {
         const grid = document.getElementById('mainGrid');
-        const isGrowth = document.getElementById('growthToggle').checked && isAllKvksMode;
+        const isGrowth = currentViewMode === 'growth' && isAllKvksMode;
         const query = document.getElementById('playerSearch').value.toLowerCase();
         
         document.querySelectorAll('canvas').forEach(c => { const chart = Chart.getChart(c); if(chart) chart.destroy(); });

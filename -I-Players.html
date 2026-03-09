@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intelligence Core // DRILLDOWN_V8.1</title>
+    <title>Intelligence Core // DRILLDOWN_V7</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -34,19 +34,18 @@
         .growth-card { position: relative; z-index: 10; transition: transform 0.3s ease; cursor: pointer; }
         .growth-card:hover { transform: translateY(-8px); }
         .metric-bar { display: flex; gap: 6px; overflow-x: auto; padding: 5px 0; scrollbar-width: none; }
-        .solo-header { grid-column: 1 / -1; padding: 40px 0; text-align: center; }
-        .solo-header h2 { font-size: 3.5rem; color: var(--text-title); font-weight: 900; }
+        .delta-text { font-weight: 900; font-size: 0.75rem; margin-top: 4px; letter-spacing: 1px; }
+        .positive { color: #10b981; }
+        .negative { color: #ef4444; }
         .chart-container { height: 160px; margin-top: 15px; }
-        .stat-label { font-size: 0.65rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
-        .stat-value { font-family: 'Courier New', monospace; font-weight: 900; color: #fff; }
     </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loader"><div class="loading-text">UNIFYING_LOGIC_STREAM...</div></div>
+<div class="loading-overlay" id="loader"><div class="loading-text">RESTORING_CORE_PROTOCOL...</div></div>
 
 <div class="app-container">
-    <div class="header-nav">
+    <div class="header-nav" id="headerNav">
         <div id="navActionContainer">
             <button class="exit-btn" onclick="window.location.href='index.html'">← SYSTEM_RETURN</button>
         </div>
@@ -56,14 +55,17 @@
     <div id="drilldownContent">
         <div class="sticky-wrapper" id="controlsWrapper">
             <div class="primary-controls">
-                <select id="seasonFolder" class="custom-select" onchange="handleFolderChange()">
-                    <option value="ALL_KVKS">★ ALL KVKS</option>
-                </select>
+                <div class="custom-select-wrapper">
+                    <select id="seasonFolder" onchange="handleFolderChange()">
+                        <option value="">-- SELECT DATA FOLDER --</option>
+                        <option value="ALL_KVKS">★ ALL KVKS</option>
+                    </select>
+                </div>
                 <input type="text" id="playerSearch" class="search-box" placeholder="SEARCH_LORDS..." oninput="renderDisplay()">
                 
-                <div class="view-toggle-container" id="toggleWrapper">
+                <div class="view-toggle-container" id="toggleWrapper" style="display: none;">
                     <div id="pill-bg" class="pill-slider"></div>
-                    <button id="mode-total" class="toggle-btn" onclick="setMode('total')">TOTAL</button>
+                    <button id="mode-total" class="toggle-btn active" onclick="setMode('total')">TOTAL</button>
                     <button id="mode-growth" class="toggle-btn" onclick="setMode('growth')">GROWTH</button>
                 </div>
             </div>
@@ -74,12 +76,16 @@
 </div>
 
 <script>
-    const BASE_PATH = "IData/";
+    const BASE_PATH = "IData/"; 
+    const POWER_FLOOR = 35000000;
+    const MIN_SHEETS = 2; 
     const targetServers = ["167", "509"];
     let weeklyData = {};
     let currentSortMetric = 'highest_power';
-    let currentViewMode = 'total'; 
+    let fileListData = {};
+    let isAllKvksMode = false;
     let selectedPlayerId = null;
+    let currentViewMode = 'total'; 
 
     const metrics = {
         'highest_power': 'HIGHEST POWER', 'merits': 'MERITS', 'units_killed': 'TOTAL KILLS',
@@ -89,12 +95,18 @@
         'stone_spent': 'STONE SPENT', 'mana_spent': 'MANA SPENT'
     };
 
-    function setMode(mode) {
-        currentViewMode = mode;
+    function updatePillPosition(mode) {
         const pill = document.getElementById('pill-bg');
         const btn = document.getElementById(mode === 'total' ? 'mode-total' : 'mode-growth');
-        pill.style.width = btn.offsetWidth + "px";
-        pill.style.left = btn.offsetLeft + "px";
+        if (pill && btn) {
+            pill.style.width = btn.offsetWidth + "px";
+            pill.style.left = btn.offsetLeft + "px";
+        }
+    }
+
+    function setMode(mode) {
+        currentViewMode = mode;
+        updatePillPosition(mode);
         renderDisplay();
     }
 
@@ -111,35 +123,83 @@
             bar.appendChild(btn);
         });
 
-        const res = await fetch('data/files.json');
-        const fileListData = await res.json();
+        try {
+            const res = await fetch('data/files.json');
+            fileListData = await res.json();
+            const selector = document.getElementById('seasonFolder');
+            fileListData.iDataFolders.forEach(folder => {
+                const opt = document.createElement('option');
+                opt.value = folder.name; opt.textContent = folder.name.replace(/^\d+\s*-\s*/, '');
+                selector.appendChild(opt);
+            });
+            selector.value = "ALL_KVKS";
+            handleFolderChange();
+        } catch(e) { console.error("Init failed", e); }
+    }
+
+    async function handleFolderChange() {
+        const val = document.getElementById('seasonFolder').value;
+        if (!val) return;
+        document.getElementById('loader').style.display = 'flex';
+        weeklyData = {}; 
+        isAllKvksMode = (val === 'ALL_KVKS');
+        document.getElementById('toggleWrapper').style.display = isAllKvksMode ? 'flex' : 'none';
+
+        if (isAllKvksMode) {
+            await loadDynamicAllKvks();
+        } else {
+            await loadSingleFolder(val);
+        }
+        
+        document.getElementById('loader').style.display = 'none';
+        renderDisplay();
+        if (isAllKvksMode) setTimeout(() => updatePillPosition(currentViewMode), 50);
+    }
+
+    async function loadDynamicAllKvks() {
         const folders = fileListData.iDataFolders;
+        for (const folderMeta of folders) {
+            const fName = folderMeta.name.replace('KVK', 'KvK');
+            const files = folderMeta.files;
+            if (files.length < 2) continue;
+            const [rOld, rNew] = await Promise.all([fetch(BASE_PATH + fName + "/" + files[0]), fetch(BASE_PATH + fName + "/" + files[files.length - 1])]);
+            const [dOld, dNew] = [parseCSV(await rOld.text()), parseCSV(await rNew.text())];
 
-        for (const folder of folders) {
-            const fName = folder.name.replace('KVK', 'KvK');
-            const files = folder.files;
-            const [r1, r2] = await Promise.all([fetch(BASE_PATH+fName+"/"+files[0]), fetch(BASE_PATH+fName+"/"+files[files.length-1])]);
-            const [d1, d2] = [parseCSV(await r1.text()), parseCSV(await r2.text())];
-
-            Object.keys(d2).forEach(id => {
-                if (!weeklyData[id]) weeklyData[id] = { name: d2[id].name, timeline: [], growth: [] };
-                const endVal = d2[id];
-                const startVal = d1[id] || d2[id]; 
+            Object.keys(dNew).forEach(id => {
+                if (parseInt(dNew[id].highest_power) < POWER_FLOOR) return;
+                if (!weeklyData[id]) weeklyData[id] = { name: dNew[id].name, timeline: [], growth: [], sheetCount: 0 };
                 
-                let kvkGrowth = { label: fName };
-                let kvkTotal = { label: fName };
-                
+                let totalEntry = { label: fName };
+                let growthEntry = { label: fName };
                 Object.keys(metrics).forEach(m => {
-                    kvkTotal[m] = parseInt(endVal[m]) || 0;
-                    kvkGrowth[m] = (parseInt(endVal[m]) || 0) - (parseInt(startVal[m]) || 0);
+                    const v1 = parseInt(dOld[id]?.[m]) || 0;
+                    const v2 = parseInt(dNew[id][m]) || 0;
+                    totalEntry[m] = v2;
+                    growthEntry[m] = v2 - v1;
                 });
-                
-                weeklyData[id].timeline.push(kvkTotal);
-                weeklyData[id].growth.push(kvkGrowth);
+                weeklyData[id].timeline.push(totalEntry);
+                weeklyData[id].growth.push(growthEntry);
+                weeklyData[id].sheetCount++;
             });
         }
-        setMode('total');
-        document.getElementById('loader').style.display = 'none';
+    }
+
+    async function loadSingleFolder(folderName) {
+        const folderMeta = fileListData.iDataFolders.find(f => f.name === folderName);
+        const files = folderMeta.files;
+        const pathPrefix = BASE_PATH + folderName.replace('KVK', 'KvK') + "/";
+        for (const f of files) {
+            const r = await fetch(pathPrefix + f);
+            const d = parseCSV(await r.text());
+            Object.keys(d).forEach(id => {
+                if (parseInt(d[id].highest_power) < POWER_FLOOR) return;
+                if (!weeklyData[id]) weeklyData[id] = { name: d[id].name, timeline: [], sheetCount: 0 };
+                let entry = { label: f.replace('.csv','') };
+                Object.keys(metrics).forEach(m => entry[m] = parseInt(d[id][m]) || 0);
+                weeklyData[id].timeline.push(entry);
+                weeklyData[id].sheetCount++;
+            });
+        }
     }
 
     function renderDisplay() {
@@ -147,28 +207,30 @@
         const query = document.getElementById('playerSearch').value.toLowerCase();
         grid.innerHTML = "";
         
-        if (selectedPlayerId) { return renderSoloMode(selectedPlayerId); }
+        if (selectedPlayerId && weeklyData[selectedPlayerId]) {
+            return renderSoloMode(selectedPlayerId);
+        }
 
-        const isGrowth = currentViewMode === 'growth';
-        
+        const isGrowth = currentViewMode === 'growth' && isAllKvksMode;
         const sorted = Object.entries(weeklyData).filter(([id, data]) => {
-            return !query || data.name.toLowerCase().includes(query) || id.includes(query);
+            return data.sheetCount >= (isAllKvksMode ? 1 : MIN_SHEETS) && (!query || data.name.toLowerCase().includes(query) || id.includes(query));
         }).sort((a, b) => {
-            const dataA = isGrowth ? a[1].growth : a[1].timeline;
-            const dataB = isGrowth ? b[1].growth : b[1].timeline;
-            return (dataB[dataB.length-1][currentSortMetric] || 0) - (dataA[dataA.length-1][currentSortMetric] || 0);
+            const setA = isGrowth ? a[1].growth : a[1].timeline;
+            const setB = isGrowth ? b[1].growth : b[1].timeline;
+            return (setB[setB.length-1][currentSortMetric] || 0) - (setA[setA.length-1][currentSortMetric] || 0);
         });
 
         document.getElementById('subjectCount').textContent = `ACTIVE_MEMBERS // ${sorted.length}`;
 
         sorted.forEach(([id, data], index) => {
             const activeSet = isGrowth ? data.growth : data.timeline;
-            const lastEntry = activeSet[activeSet.length - 1];
-            const displayVal = lastEntry[currentSortMetric];
+            const currentVal = activeSet[activeSet.length - 1][currentSortMetric];
             
-            // UNIFIED LABELING: [METRIC] + [TYPE]
-            const labelSuffix = isGrowth ? " IN LAST KVK" : "";
-            const finalLabel = metrics[currentSortMetric] + labelSuffix;
+            let deltaHTML = "";
+            if (!isGrowth && activeSet.length > 1) {
+                const delta = currentVal - activeSet[0][currentSortMetric];
+                deltaHTML = `<div class="delta-text ${delta >= 0 ? 'positive' : 'negative'}">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()}</div>`;
+            }
 
             const card = document.createElement('div');
             card.className = "growth-card glow-purple";
@@ -178,62 +240,59 @@
                 <h3 style="margin:0; color:var(--text-title);">${data.name}</h3>
                 <div style="font-size:0.6rem; color:var(--text-dim);">ID: ${id}</div>
                 <div style="margin:20px 0;">
-                    <div class="stat-label" style="color:var(--accent-purple);">${finalLabel}</div>
-                    <div class="stat-value" style="font-size:1.4rem;">${displayVal.toLocaleString()}</div>
+                    <div class="stat-label">${metrics[currentSortMetric]} ${isGrowth ? 'GROWTH' : ''}</div>
+                    <div class="stat-value" style="font-size:1.4rem;">${currentVal.toLocaleString()}</div>
+                    ${deltaHTML}
                 </div>
                 <div class="chart-container"><canvas id="chart-${id}"></canvas></div>
             `;
             grid.appendChild(card);
-            
-            new Chart(document.getElementById(`chart-${id}`), {
-                type: 'line',
-                data: {
-                    labels: activeSet.map(t => t.label),
-                    datasets: [{ data: activeSet.map(t => t[currentSortMetric]), borderColor: '#9333ea', tension: 0.3, fill: false, pointRadius: 2 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
-            });
+            createChart(`chart-${id}`, activeSet, currentSortMetric);
         });
     }
 
     function renderSoloMode(id) {
         const grid = document.getElementById('mainGrid');
         const data = weeklyData[id];
-        const isGrowth = currentViewMode === 'growth';
-
-        const header = document.createElement('div');
-        header.className = 'solo-header';
-        header.innerHTML = `
-            <button class="exit-btn" onclick="selectedPlayerId=null; renderDisplay();">← RETURN_TO_GRID</button>
-            <h2>${data.name}</h2>
-            <div class="stat-label">ID: ${id}</div>
+        const isGrowth = currentViewMode === 'growth' && isAllKvksMode;
+        
+        grid.innerHTML = `
+            <div class="solo-header">
+                <button class="exit-btn" onclick="selectedPlayerId=null; renderDisplay();">← RETURN_TO_GRID</button>
+                <h2>${data.name}</h2>
+                <div class="stat-label">ID: ${id}</div>
+            </div>
         `;
-        grid.appendChild(header);
 
-        Object.keys(metrics).forEach(mKey => {
+        Object.keys(metrics).forEach(m => {
             const activeSet = isGrowth ? data.growth : data.timeline;
-            const lastVal = activeSet[activeSet.length - 1][mKey];
-            const labelSuffix = isGrowth ? " IN LAST KVK" : "";
-            const finalLabel = metrics[mKey] + labelSuffix;
-
-            const mini = document.createElement('div');
-            mini.className = "growth-card glow-purple";
-            mini.style.cursor = "default";
-            mini.innerHTML = `
-                <div class="stat-label">${finalLabel}</div>
-                <div class="stat-value" style="font-size:1.8rem;">${lastVal.toLocaleString()}</div>
-                <div class="chart-container"><canvas id="solo-${mKey}"></canvas></div>
+            const val = activeSet[activeSet.length-1][m];
+            const card = document.createElement('div');
+            card.className = "growth-card glow-purple";
+            card.style.cursor = "default";
+            card.innerHTML = `
+                <div class="stat-label">${metrics[m]} ${isGrowth ? 'GROWTH' : ''}</div>
+                <div class="stat-value" style="font-size:1.6rem;">${val.toLocaleString()}</div>
+                <div class="chart-container"><canvas id="solo-${m}"></canvas></div>
             `;
-            grid.appendChild(mini);
-            
-            new Chart(document.getElementById(`solo-${mKey}`), {
-                type: 'line',
-                data: {
-                    labels: activeSet.map(t => t.label),
-                    datasets: [{ data: activeSet.map(t => t[mKey]), borderColor: '#9333ea', tension: 0.3, pointRadius: 4 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false } } }
-            });
+            grid.appendChild(card);
+            createChart(`solo-${m}`, activeSet, m);
+        });
+    }
+
+    function createChart(canvasId, timeline, metricKey) {
+        const ctx = document.getElementById(canvasId).getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: timeline.map(t => t.label),
+                datasets: [{ data: timeline.map(t => t[metricKey]), borderColor: '#9333ea', tension: 0.3, fill: false }]
+            },
+            options: { 
+                responsive: true, maintainAspectRatio: false, 
+                plugins: { legend: { display: false } }, 
+                scales: { x: { display: false }, y: { display: false } } 
+            }
         });
     }
 

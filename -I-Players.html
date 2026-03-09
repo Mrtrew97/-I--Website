@@ -301,7 +301,12 @@
         const sorted = Object.values(weeklyData).filter(p => p.sheetCount >= (isAllKvksMode ? 1 : MIN_SHEETS)).sort((a,b) => {
             const tA = isGrowth ? a.growthTimeline : a.timeline;
             const tB = isGrowth ? b.growthTimeline : b.timeline;
-            return (tB[tB.length-1][currentSortMetric] || 0) - (tA[tA.length-1][currentSortMetric] || 0);
+            
+            // Peak logic for sorting
+            const valA = isGrowth ? Math.max(...tA.map(t => t[currentSortMetric] || 0)) : tA[tA.length - 1][currentSortMetric];
+            const valB = isGrowth ? Math.max(...tB.map(t => t[currentSortMetric] || 0)) : tB[tB.length - 1][currentSortMetric];
+            
+            return (valB || 0) - (valA || 0);
         });
 
         document.getElementById('subjectCount').textContent = `ACTIVE_MEMBERS // ${sorted.length}`;
@@ -315,13 +320,19 @@
             card.onclick = () => { selectedPlayerId = lordId; renderDisplay(); };
             
             const activeTimeline = isGrowth ? data.growthTimeline : data.timeline;
-            const curVal = activeTimeline[activeTimeline.length - 1][currentSortMetric] || 0;
+            
+            let displayVal;
+            if (isGrowth) {
+                displayVal = Math.max(...activeTimeline.map(t => t[currentSortMetric] || 0));
+            } else {
+                displayVal = activeTimeline[activeTimeline.length - 1][currentSortMetric] || 0;
+            }
 
             let deltaHTML = "";
             if (!isGrowth) {
                 const delta = isAllKvksMode ? 
-                    (curVal - (data.ends.length > 1 ? data.ends[data.ends.length - 2][currentSortMetric] : 0)) : 
-                    (curVal - (data.timeline[0][currentSortMetric] || 0));
+                    (displayVal - (data.ends.length > 1 ? data.ends[data.ends.length - 2][currentSortMetric] : 0)) : 
+                    (displayVal - (data.timeline[0][currentSortMetric] || 0));
                 deltaHTML = `<div class="delta-text ${delta >= 0 ? 'positive' : 'negative'}">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()} ${isAllKvksMode ? 'vs last KVK' : 'this KVK'}</div>`;
             }
 
@@ -340,7 +351,7 @@
                 <h3 style="margin:0; font-size:1.6rem; color:var(--text-title);">${data.latestStats.name}</h3>
                 <div style="font-size:0.65rem; color:var(--text-dim); font-weight:900; margin-top:4px;">ID: ${lordId}</div>
                 <div style="margin:20px 0;">
-                    <div class="stat-value" style="font-size:1.4rem;">${curVal.toLocaleString()}</div>
+                    <div class="stat-value" style="font-size:1.4rem;">${displayVal.toLocaleString()}</div>
                     <div class="stat-label">${displayLabel}</div>
                     ${deltaHTML}
                 </div>

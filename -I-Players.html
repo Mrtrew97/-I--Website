@@ -38,13 +38,19 @@
 </div>
 
 <script>
-    const BASE_PATH = "-I--Website/-I- Data/";
+    // Force a relative path based on the current URL directory
+    const getBasePath = () => {
+        const path = window.location.pathname;
+        const directory = path.substring(0, path.lastIndexOf('/'));
+        return directory + "/-I-Data/";
+    };
+
+    const BASE_PATH = getBasePath();
     const POWER_FLOOR = 35000000;
     const MIN_SHEETS = 2; 
     const targetServers = ["167", "509"];
     let weeklyData = {};
     let currentSortMetric = 'highest_power';
-    let availableFolders = [];
     let fileListData = {};
     let isAllKvksMode = false;
     let selectedPlayerId = null;
@@ -66,11 +72,6 @@
         'mana_spent': 'MANA SPENT'
     };
 
-    function parseDate(fn) {
-        const p = fn.replace('.csv','').split('-');
-        return p.length === 3 ? new Date(p[2], p[1]-1, p[0]) : new Date(0);
-    }
-
     function cleanName(raw) {
         if (raw === "ALL_KVKS") return "★ ALL KVKS";
         return raw.replace(/^\d+\s*-\s*/, '');
@@ -83,7 +84,6 @@
             if (!res.ok) throw new Error('Could not load files.json');
             
             fileListData = await res.json();
-            availableFolders = fileListData.iDataFolders.map(folder => folder.name);
 
             const selector = document.getElementById('seasonFolder');
             fileListData.iDataFolders.forEach(folder => {
@@ -135,24 +135,22 @@
     async function loadDynamicAllKvks() {
         const latestFolder = fileListData.iDataFolders[fileListData.iDataFolders.length - 1];
         const latestFiles = latestFolder.files;
-        const latestPath = `${BASE_PATH}${latestFolder.name}/${latestFiles[latestFiles.length - 1]}`;
+        const latestPath = `${BASE_PATH}${encodeURIComponent(latestFolder.name)}/${latestFiles[latestFiles.length - 1]}`;
         const latestSheetData = parseCSV(await (await fetch(latestPath)).text());
         const activeIds = Object.keys(latestSheetData).filter(id => parseInt(latestSheetData[id].highest_power) >= POWER_FLOOR);
 
         for (const folderMeta of fileListData.iDataFolders) {
             const folderName = folderMeta.name;
             const files = folderMeta.files;
-            
             if (files.length < 2) continue;
 
-            const firstFile = `${BASE_PATH}${folderName}/${files[0]}`;
-            const lastFile = `${BASE_PATH}${folderName}/${files[files.length - 1]}`;
+            const firstFile = `${BASE_PATH}${encodeURIComponent(folderName)}/${files[0]}`;
+            const lastFile = `${BASE_PATH}${encodeURIComponent(folderName)}/${files[files.length - 1]}`;
 
-            const [textOld, textNew] = await Promise.all([
-                fetch(firstFile).then(r => r.text()),
-                fetch(lastFile).then(r => r.text())
-            ]);
-            
+            const [respOld, respNew] = await Promise.all([fetch(firstFile), fetch(lastFile)]);
+            if (!respOld.ok || !respNew.ok) continue;
+
+            const [textOld, textNew] = await Promise.all([respOld.text(), respNew.text()]);
             const dataOld = parseCSV(textOld);
             const dataNew = parseCSV(textNew);
 
@@ -182,13 +180,16 @@
         if (!folderMeta) return;
 
         const files = folderMeta.files;
-        const path = `${BASE_PATH}${folderName}/`;
+        const pathPrefix = `${BASE_PATH}${encodeURIComponent(folderName)}/`;
         
-        const latestData = parseCSV(await (await fetch(path + files[files.length - 1])).text());
+        const latestResp = await fetch(pathPrefix + files[files.length - 1]);
+        const latestData = parseCSV(await latestResp.text());
         const activeIds = Object.keys(latestData).filter(id => parseInt(latestData[id].highest_power) >= POWER_FLOOR);
 
         for (const f of files) {
-            const d = parseCSV(await (await fetch(path + f)).text());
+            const r = await fetch(pathPrefix + f);
+            if (!r.ok) continue;
+            const d = parseCSV(await r.text());
             activeIds.forEach(id => {
                 if (!d[id]) return;
                 if (!weeklyData[id]) { 
@@ -344,7 +345,9 @@
     }
 
     function createChart(canvasId, data, metricKey) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
+        const el = document.getElementById(canvasId);
+        if(!el) return;
+        const ctx = el.getContext('2d');
         let graphTimeline = (isAllKvksMode) ? data.ends : data.timeline;
 
         new Chart(ctx, {

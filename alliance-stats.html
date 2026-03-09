@@ -5,6 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alliance Intelligence // CORE_V2</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        /* Spacing Fix: Increased buffer between controls and cards */
+        .sticky-wrapper {
+            position: sticky; 
+            top: 0; 
+            z-index: 100;
+            /* 40px bottom padding ensures cards don't touch the bar on hover lift */
+            padding: 10px 0 40px 0;
+            backdrop-filter: blur(12px) saturate(150%);
+            -webkit-backdrop-filter: blur(12px) saturate(150%);
+            background: rgba(3, 0, 5, 0.5); 
+            border-bottom: 1px solid rgba(147, 51, 234, 0.05);
+        }
+
+        .primary-controls {
+            background: rgba(147, 51, 234, 0.03); 
+            padding: 10px 15px; 
+            border-radius: 16px; 
+            border: 1px solid var(--border-color); 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 10px; 
+            align-items: center;
+            /* 20px bottom margin for internal spacing within the sticky area */
+            margin-bottom: 20px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .metric-bar { 
+            display: flex; 
+            gap: 6px; 
+            overflow-x: auto; 
+            padding: 5px 0; 
+            scrollbar-width: none; 
+        }
+
+        .home-layout .app-container {
+            padding-top: 0;
+        }
+
+        /* Prevent scrollbar from shifting layout */
+        html {
+            overflow-y: scroll;
+        }
+    </style>
 </head>
 <body>
 

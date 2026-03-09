@@ -19,7 +19,6 @@
             z-index: 999; 
             padding: 10px 0 20px 0;
             background: transparent; 
-            /* High-end frosted glass effect */
             backdrop-filter: blur(12px) saturate(150%);
             -webkit-backdrop-filter: blur(12px) saturate(150%);
         }
@@ -69,9 +68,15 @@
             overflow-y: scroll;
         }
 
+        /* CENTERED SOLO HEADER */
         .solo-header {
             grid-column: 1 / -1;
-            padding: 40px 0;
+            padding: 60px 0;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
         }
     </style>
 </head>
@@ -319,19 +324,37 @@
     function renderSoloMode(id) {
         const grid = document.getElementById('mainGrid');
         const data = weeklyData[id];
+        
         const header = document.createElement('div');
         header.className = 'solo-header';
-        header.innerHTML = `<div><div class="stat-label">MEMBER_ANALYSIS</div><h2 style="font-size:3.5rem; margin:10px 0; color:var(--text-title);">${data.latestStats.name}</h2><div class="stat-label">MEMBER_ID: ${id}</div></div>`;
+        header.innerHTML = `
+            <div>
+                <div class="stat-label" style="letter-spacing: 4px;">MEMBER_ANALYSIS</div>
+                <h2 style="font-size:3.5rem; margin:15px 0; color:var(--text-title); font-weight: 900;">${data.latestStats.name}</h2>
+                <div class="stat-label" style="color:var(--accent-purple);">MEMBER_ID: ${id}</div>
+            </div>
+        `;
         grid.appendChild(header);
 
         Object.keys(metrics).forEach(mKey => {
             const miniCard = document.createElement('div');
-            miniCard.className = "growth-card glow-purple"; miniCard.style.cursor = "default";
+            miniCard.className = "growth-card glow-purple"; 
+            miniCard.style.cursor = "default";
+            
             let graphTimeline = (isAllKvksMode) ? data.ends : data.timeline;
             const curVal = graphTimeline[graphTimeline.length - 1][mKey] || 0;
-            let delta = isAllKvksMode ? (curVal - (graphTimeline.length > 1 ? graphTimeline[graphTimeline.length - 2][mKey] : 0)) : (curVal - (graphTimeline[0][mKey] || 0));
+            let delta = isAllKvksMode ? 
+                (curVal - (graphTimeline.length > 1 ? graphTimeline[graphTimeline.length - 2][mKey] : 0)) : 
+                (curVal - (graphTimeline[0][mKey] || 0));
 
-            miniCard.innerHTML = `<div class="stat-label">${metrics[mKey]}</div><div class="stat-value" style="font-size:1.8rem;">${curVal.toLocaleString()}</div><div class="${delta >= 0 ? 'positive' : 'negative'}" style="font-weight:900; font-size:0.75rem; margin-top:5px;">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()}</div><div style="height:120px; margin-top:15px;"><canvas id="solo-${mKey}"></canvas></div>`;
+            miniCard.innerHTML = `
+                <div class="stat-label">${metrics[mKey]}</div>
+                <div class="stat-value" style="font-size:1.8rem;">${curVal.toLocaleString()}</div>
+                <div class="${delta >= 0 ? 'positive' : 'negative'}" style="font-weight:900; font-size:0.75rem; margin-top:5px;">
+                    ${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()}
+                </div>
+                <div style="height:120px; margin-top:15px;"><canvas id="solo-${mKey}"></canvas></div>
+            `;
             grid.appendChild(miniCard);
             createChart(`solo-${mKey}`, data, mKey);
         });

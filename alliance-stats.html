@@ -60,7 +60,7 @@
 <div class="app-container">
     <div class="header-nav" id="topNav">
         <a href="index.html" class="exit-btn">← SYSTEM_RETURN</a>
-        <div id="rowCountDisplay" style="font-weight:900; color: var(--accent-purple); font-size: 0.75rem;">ACTIVE_SUBJECTS: 0</div>
+        <div id="rowCountDisplay" style="font-weight:900; color: var(--accent-purple); font-size: 0.75rem;">ACTIVE_MEMBERS: 0</div>
     </div>
 
     <div id="fleetView">
@@ -85,7 +85,7 @@
                         <option value="all">All Servers</option>
                     </select>
                 </div>
-                <input type="text" id="playerSearch" class="search-box" placeholder="SCAN_SUBJECT_DATABASE..." oninput="filterAndRender()">
+                <input type="text" id="playerSearch" class="search-box" placeholder="SCAN_MEMBER_DATABASE..." oninput="filterAndRender()">
             </div>
             <div class="metric-bar" id="metricBar"></div>
         </div>
@@ -231,7 +231,7 @@
         currentTableData.forEach((row, idx) => row._globalRank = idx + 1);
         let displayData = currentTableData.filter(row => (row.name || '').toLowerCase().includes(query) || (row.lord_id || '').toLowerCase().includes(query));
 
-        document.getElementById('rowCountDisplay').innerText = `ACTIVE_SUBJECTS: ${displayData.length}`;
+        document.getElementById('rowCountDisplay').innerText = `ACTIVE_MEMBERS: ${displayData.length}`;
         const container = document.getElementById('mainGrid');
         container.innerHTML = ""; 
 

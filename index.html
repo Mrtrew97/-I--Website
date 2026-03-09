@@ -301,6 +301,7 @@
         const sorted = Object.values(weeklyData).filter(p => p.sheetCount >= (isAllKvksMode ? 1 : MIN_SHEETS)).sort((a,b) => {
             const tA = isGrowth ? a.growthTimeline : a.timeline;
             const tB = isGrowth ? b.growthTimeline : b.timeline;
+            // Sorting based STRICTLY on the last data point
             const valA = tA[tA.length - 1][currentSortMetric];
             const valB = tB[tB.length - 1][currentSortMetric];
             return (valB || 0) - (valA || 0);
@@ -318,8 +319,9 @@
             
             const activeTimeline = isGrowth ? data.growthTimeline : data.timeline;
             
-            // STRICT GRID LOGIC: Always use the last item in the array
-            let displayVal = activeTimeline[activeTimeline.length - 1][currentSortMetric];
+            // GRID LOGIC: FORCE LAST ITEM VALUE ONLY
+            const lastEntry = activeTimeline[activeTimeline.length - 1];
+            let displayVal = lastEntry[currentSortMetric];
 
             let deltaHTML = "";
             if (!isGrowth) {
@@ -329,7 +331,7 @@
                 deltaHTML = `<div class="delta-text ${delta >= 0 ? 'positive' : 'negative'}">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()} ${isAllKvksMode ? 'VS LAST KVK' : 'THIS KVK'}</div>`;
             }
 
-            // STRICT GRID LABELS
+            // GRID LABEL OVERRIDE
             let displayLabel = metrics[currentSortMetric];
             if (isGrowth) {
                 displayLabel = `${metrics[currentSortMetric]} IN LAST KVK`;
@@ -370,21 +372,25 @@
         `;
         grid.appendChild(header);
 
+        // SOLO MODE: Uses peak logic for Growth
         Object.keys(metrics).forEach(mKey => {
             const activeTimeline = isGrowth ? data.growthTimeline : data.timeline;
             
-            // SOLO MODE STILL USES PEAK LOGIC FOR GROWTH
-            let displayVal = isGrowth ? Math.max(...activeTimeline.map(t => t[mKey] || 0)) : activeTimeline[activeTimeline.length - 1][mKey] || 0;
+            let displayVal;
+            let displayLabel = metrics[mKey];
+
+            if (isGrowth) {
+                // Peak value logic strictly for Solo View
+                displayVal = Math.max(...activeTimeline.map(t => t[mKey] || 0));
+                displayLabel = mKey === 'highest_power' ? "HIGHEST POWER GAINED IN A KVK" : `MOST ${metrics[mKey]} GOTTEN IN A KVK`;
+            } else {
+                displayVal = activeTimeline[activeTimeline.length - 1][mKey] || 0;
+            }
 
             let deltaHTML = "";
             if (!isGrowth) {
                 const delta = isAllKvksMode ? (displayVal - (data.ends.length > 1 ? data.ends[data.ends.length - 2][mKey] : 0)) : (displayVal - (data.timeline[0][mKey] || 0));
                 deltaHTML = `<div class="delta-text ${delta >= 0 ? 'positive' : 'negative'}">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()} VS LAST KVK</div>`;
-            }
-
-            let displayLabel = metrics[mKey];
-            if (isGrowth) {
-                displayLabel = mKey === 'highest_power' ? "HIGHEST POWER GAINED IN A KVK" : `MOST ${metrics[mKey]} GOTTEN IN A KVK`;
             }
 
             const mini = document.createElement('div');

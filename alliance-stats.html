@@ -146,16 +146,28 @@
         try {
             const response = await fetch('data/files.json');
             fileListData = await response.json();
-            let foundFiles = fileListData.mainDataFiles.map(path => path.split('/').pop());
-            foundFiles.sort((a, b) => parseDate(b) - parseDate(a));
+            
+            // Sort to find the absolute oldest file
+            let sortedPaths = [...fileListData.mainDataFiles].sort((a, b) => {
+                return parseDate(a.split('/').pop()) - parseDate(b.split('/').pop());
+            });
 
-            if (foundFiles.length > 0) {
+            const oldestFilePath = sortedPaths[0]; // This is the first recorded date
+            const oldestRes = await fetch(oldestFilePath);
+            const oldestCSV = await oldestRes.text();
+            
+            // BUILD ALLIANCE MAP ONLY ONCE FROM THE OLDEST FILE
+            updateAllianceList(oldestCSV);
+
+            let displayFiles = [...fileListData.mainDataFiles].sort((a, b) => parseDate(b.split('/').pop()) - parseDate(a.split('/').pop()));
+
+            if (displayFiles.length > 0) {
                 const startSelect = document.getElementById('dateStart');
                 const endSelect = document.getElementById('dateEnd');
                 startSelect.innerHTML = ""; endSelect.innerHTML = "";
                 
-                foundFiles.forEach((name, index) => {
-                    const fullPath = fileListData.mainDataFiles[fileListData.mainDataFiles.length - 1 - index];
+                displayFiles.forEach((fullPath) => {
+                    const name = fullPath.split('/').pop();
                     const opt = document.createElement('option');
                     opt.value = fullPath;
                     opt.textContent = name.replace('.csv','');
@@ -164,12 +176,7 @@
                 });
                 
                 endSelect.selectedIndex = 0;
-                if (foundFiles.length > 1) startSelect.selectedIndex = 1;
-                
-                // CRITICAL FIX: Wait for alliance map before processing anything else
-                const oldestFile = fileListData.mainDataFiles[fileListData.mainDataFiles.length - 1];
-                const oldestRes = await fetch(oldestFile);
-                await updateAllianceList(await oldestRes.text());
+                if (displayFiles.length > 1) startSelect.selectedIndex = 1;
                 
                 await processData();
             }
@@ -179,20 +186,20 @@
 
     async function processData() {
         showLoader(true);
-        const isRange = document.getElementById('vRange').checked;
         const selA = document.getElementById('dateStart').value;
         const selB = document.getElementById('dateEnd').value;
         const selectedServer = document.getElementById('allianceSelect').value;
+        const isRange = document.getElementById('vRange').checked;
 
         try {
-            let endRes = await fetch(selB);
-            let endData = parseCSV(await endRes.text());
+            const endRes = await fetch(selB);
+            const endData = parseCSV(await endRes.text());
             
             let filteredRaw = Object.values(endData).filter(row => (parseInt(row.highest_power) || 0) >= 35000000);
             if (selectedServer !== "all") filteredRaw = filteredRaw.filter(row => row.home_server === selectedServer);
 
             currentTableData = filteredRaw.map(row => {
-                // Mapping tag from our pre-built map
+                // Strictly use the map built from the oldest file
                 row.alliance_tag = allianceTagMap[row.home_server] || '-';
                 return { ...row, _isDiff: false };
             });
@@ -214,6 +221,36 @@
             filterAndRender();
         } catch (e) { console.error(e); }
         showLoader(false);
+    }
+
+    function updateAllianceList(csvText) {
+        const serverMap = {};
+        const lines = csvText.split(/\r?\n/).filter(l => l.trim());
+        const headers = splitCSVLine(lines[0]).map(h => cleanCell(h).toLowerCase());
+        const sIdx = headers.indexOf('home_server'), tIdx = headers.indexOf('alliance_tag');
+        
+        lines.slice(1).forEach(line => {
+            const cells = splitCSVLine(line);
+            const sID = cleanCell(cells[sIdx]), tag = cleanCell(cells[tIdx]);
+            if (sID && tag && tag !== "null" && tag !== "-") {
+                if (!serverMap[sID]) serverMap[sID] = {};
+                serverMap[sID][tag] = (serverMap[sID][tag] || 0) + 1;
+            }
+        });
+
+        const select = document.getElementById('allianceSelect');
+        select.innerHTML = '<option value="all">All Servers</option>';
+        
+        allianceTagMap = {};
+        Object.keys(serverMap).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(id => {
+            const tags = serverMap[id];
+            const bestTag = Object.keys(tags).reduce((a, b) => tags[a] > tags[b] ? a : b);
+            allianceTagMap[id] = bestTag;
+            const opt = document.createElement('option');
+            opt.value = id;
+            opt.textContent = `${bestTag} (${id})`;
+            select.appendChild(opt);
+        });
     }
 
     function filterAndRender() {
@@ -257,30 +294,6 @@
                 </div>
             `;
             container.appendChild(card);
-        });
-    }
-
-    async function updateAllianceList(csvText) {
-        const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-        const headers = splitCSVLine(lines[0]).map(h => cleanCell(h).toLowerCase());
-        const sIdx = headers.indexOf('home_server'), tIdx = headers.indexOf('alliance_tag');
-        const serverMap = {}; 
-        lines.slice(1).forEach(line => {
-            const cells = splitCSVLine(line); 
-            const sID = cleanCell(cells[sIdx]), tag = cleanCell(cells[tIdx]);
-            if (sID && tag && tag !== "null") { 
-                if (!serverMap[sID]) serverMap[sID] = {}; 
-                serverMap[sID][tag] = (serverMap[sID][tag] || 0) + 1; 
-            }
-        });
-        const select = document.getElementById('allianceSelect');
-        select.innerHTML = '<option value="all">All Servers</option>';
-        allianceTagMap = {};
-        Object.keys(serverMap).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(id => {
-            const tags = serverMap[id]; 
-            const bestTag = Object.keys(tags).reduce((a, b) => tags[a] > tags[b] ? a : b);
-            allianceTagMap[id] = bestTag; 
-            const opt = document.createElement('option'); opt.value = id; opt.textContent = `${bestTag} (${id})`; select.appendChild(opt);
         });
     }
 

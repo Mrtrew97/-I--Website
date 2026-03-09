@@ -33,7 +33,7 @@
         .toggle-btn {
             background: transparent;
             border: none;
-            color: var(--text-dim);
+            color: #ffffff; /* Forced white to match solo view */
             padding: 0 18px;
             height: 100%;
             font-size: 0.65rem;
@@ -47,9 +47,10 @@
             align-items: center;
             justify-content: center;
             border-radius: 50px;
+            opacity: 0.6; /* Slight dim for inactive */
         }
         .toggle-btn.active {
-            color: #ffffff !important;
+            opacity: 1; /* Full white for active */
             text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
         .pill-slider {
@@ -212,16 +213,16 @@
     }
 
     async function handleFolderChange() {
-        const val = document.getElementById('seasonFolder').value;
-        if (!val) return;
+        const val = document.getElementById('seasonFolder');
+        if (!val.value) return;
         document.getElementById('loader').style.display = 'flex';
         weeklyData = {}; 
-        isAllKvksMode = (val === 'ALL_KVKS');
+        isAllKvksMode = (val.value === 'ALL_KVKS');
         document.getElementById('toggleWrapper').style.display = isAllKvksMode ? 'flex' : 'none';
 
         try {
             if (isAllKvksMode) await loadDynamicAllKvks();
-            else await loadSingleFolder(val);
+            else await loadSingleFolder(val.value);
         } catch (e) { console.error("Load Error:", e); }
         document.getElementById('loader').style.display = 'none';
         renderDisplay();

@@ -160,9 +160,7 @@
         const totalBtn = document.getElementById(isSolo ? 'mode-total-solo' : 'mode-total');
         const growthBtn = document.getElementById(isSolo ? 'mode-growth-solo' : 'mode-growth');
         const pill = document.getElementById(isSolo ? 'pill-bg-solo' : 'pill-bg');
-        
         if (!totalBtn || !pill) return;
-
         if (mode === 'total') {
             pill.style.width = `${totalBtn.offsetWidth}px`;
             pill.style.left = `${totalBtn.offsetLeft}px`;
@@ -175,9 +173,7 @@
     function setMode(mode) {
         currentViewMode = mode;
         renderDisplay();
-        setTimeout(() => {
-            updatePillPosition(mode, !!selectedPlayerId);
-        }, 10);
+        setTimeout(() => updatePillPosition(mode, !!selectedPlayerId), 10);
     }
 
     async function init() {
@@ -218,7 +214,6 @@
         weeklyData = {}; 
         isAllKvksMode = (val.value === 'ALL_KVKS');
         document.getElementById('toggleWrapper').style.display = isAllKvksMode ? 'flex' : 'none';
-
         try {
             if (isAllKvksMode) await loadDynamicAllKvks();
             else await loadSingleFolder(val.value);
@@ -235,7 +230,6 @@
         const latestResp = await fetch(latestPath);
         const latestSheetData = parseCSV(await latestResp.text());
         const activeIds = Object.keys(latestSheetData).filter(id => parseInt(latestSheetData[id].highest_power) >= POWER_FLOOR);
-
         for (const folderMeta of folders) {
             const fName = folderMeta.name.replace('KVK', 'KvK');
             const files = folderMeta.files;
@@ -243,7 +237,6 @@
             const [respOld, respNew] = await Promise.all([fetch(BASE_PATH + fName + "/" + files[0]), fetch(BASE_PATH + fName + "/" + files[files.length - 1])]);
             if (!respOld.ok || !respNew.ok) continue;
             const [dataOld, dataNew] = [parseCSV(await respOld.text()), parseCSV(await respNew.text())];
-
             activeIds.forEach(id => {
                 if (!weeklyData[id]) weeklyData[id] = { starts: [], ends: [], timeline: [], growthTimeline: [], latestStats: latestSheetData[id], sheetCount: 0 };
                 if (dataOld[id] && dataNew[id]) {
@@ -265,7 +258,6 @@
         const latestResp = await fetch(pathPrefix + files[files.length - 1]);
         const latestData = parseCSV(await latestResp.text());
         const activeIds = Object.keys(latestData).filter(id => parseInt(latestData[id].highest_power) >= POWER_FLOOR);
-
         for (const f of files) {
             const r = await fetch(pathPrefix + f);
             const d = parseCSV(await r.text());
@@ -301,10 +293,7 @@
         const sorted = Object.values(weeklyData).filter(p => p.sheetCount >= (isAllKvksMode ? 1 : MIN_SHEETS)).sort((a,b) => {
             const tA = isGrowth ? a.growthTimeline : a.timeline;
             const tB = isGrowth ? b.growthTimeline : b.timeline;
-            // Sorting based STRICTLY on the last data point
-            const valA = tA[tA.length - 1][currentSortMetric];
-            const valB = tB[tB.length - 1][currentSortMetric];
-            return (valB || 0) - (valA || 0);
+            return (tB[tB.length - 1][currentSortMetric] || 0) - (tA[tA.length - 1][currentSortMetric] || 0);
         });
 
         document.getElementById('subjectCount').textContent = `ACTIVE_MEMBERS // ${sorted.length}`;
@@ -319,22 +308,21 @@
             
             const activeTimeline = isGrowth ? data.growthTimeline : data.timeline;
             
-            // GRID LOGIC: FORCE LAST ITEM VALUE ONLY
-            const lastEntry = activeTimeline[activeTimeline.length - 1];
-            let displayVal = lastEntry[currentSortMetric];
+            // GRID VALUE: FORCED TO LAST POINT
+            const lastVal = activeTimeline[activeTimeline.length - 1][currentSortMetric];
+
+            // GRID LABEL: FORCED TEMPLATE
+            let labelToPrint = metrics[currentSortMetric];
+            if (isGrowth) {
+                labelToPrint = `${metrics[currentSortMetric]} IN LAST KVK`;
+            }
 
             let deltaHTML = "";
             if (!isGrowth) {
                 const delta = isAllKvksMode ? 
-                    (displayVal - (data.ends.length > 1 ? data.ends[data.ends.length - 2][currentSortMetric] : 0)) : 
-                    (displayVal - (data.timeline[0][currentSortMetric] || 0));
+                    (lastVal - (data.ends.length > 1 ? data.ends[data.ends.length - 2][currentSortMetric] : 0)) : 
+                    (lastVal - (data.timeline[0][currentSortMetric] || 0));
                 deltaHTML = `<div class="delta-text ${delta >= 0 ? 'positive' : 'negative'}">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()} ${isAllKvksMode ? 'VS LAST KVK' : 'THIS KVK'}</div>`;
-            }
-
-            // GRID LABEL OVERRIDE
-            let displayLabel = metrics[currentSortMetric];
-            if (isGrowth) {
-                displayLabel = `${metrics[currentSortMetric]} IN LAST KVK`;
             }
 
             card.innerHTML = `
@@ -342,8 +330,8 @@
                 <h3 style="margin:0; font-size:1.6rem; color:var(--text-title);">${data.latestStats.name}</h3>
                 <div style="font-size:0.65rem; color:var(--text-dim); font-weight:900; margin-top:4px;">ID: ${lordId}</div>
                 <div style="margin:20px 0;">
-                    <div class="stat-label">${displayLabel}</div>
-                    <div class="stat-value" style="font-size:1.4rem;">${displayVal.toLocaleString()}</div>
+                    <div class="stat-label">${labelToPrint}</div>
+                    <div class="stat-value" style="font-size:1.4rem;">${lastVal.toLocaleString()}</div>
                     ${deltaHTML}
                 </div>
                 <div class="chart-container"><canvas id="chart-${lordId}"></canvas></div>
@@ -356,14 +344,12 @@
     function renderSoloMode(id, isGrowth) {
         const grid = document.getElementById('mainGrid');
         const data = weeklyData[id];
-        
         const header = document.createElement('div');
         header.className = 'solo-header';
         header.innerHTML = `
             <div class="stat-label" style="letter-spacing: 4px; color: var(--accent-purple);">MEMBER_ANALYSIS</div>
             <h2>${data.latestStats.name}</h2>
             <div class="stat-label" style="font-size: 0.8rem;">ID: ${id}</div>
-            
             <div class="view-toggle-container" style="margin-top: 30px; display: ${isAllKvksMode ? 'flex' : 'none'};">
                 <div id="pill-bg-solo" class="pill-slider"></div>
                 <button id="mode-total-solo" class="toggle-btn ${currentViewMode === 'total' ? 'active' : ''}" onclick="setMode('total')">TOTAL</button>
@@ -372,27 +358,21 @@
         `;
         grid.appendChild(header);
 
-        // SOLO MODE: Uses peak logic for Growth
         Object.keys(metrics).forEach(mKey => {
             const activeTimeline = isGrowth ? data.growthTimeline : data.timeline;
-            
             let displayVal;
             let displayLabel = metrics[mKey];
-
             if (isGrowth) {
-                // Peak value logic strictly for Solo View
                 displayVal = Math.max(...activeTimeline.map(t => t[mKey] || 0));
                 displayLabel = mKey === 'highest_power' ? "HIGHEST POWER GAINED IN A KVK" : `MOST ${metrics[mKey]} GOTTEN IN A KVK`;
             } else {
                 displayVal = activeTimeline[activeTimeline.length - 1][mKey] || 0;
             }
-
             let deltaHTML = "";
             if (!isGrowth) {
                 const delta = isAllKvksMode ? (displayVal - (data.ends.length > 1 ? data.ends[data.ends.length - 2][mKey] : 0)) : (displayVal - (data.timeline[0][mKey] || 0));
                 deltaHTML = `<div class="delta-text ${delta >= 0 ? 'positive' : 'negative'}">${delta >= 0 ? '▲' : '▼'} ${Math.abs(delta).toLocaleString()} VS LAST KVK</div>`;
             }
-
             const mini = document.createElement('div');
             mini.className = "growth-card glow-purple"; mini.style.cursor = "default";
             mini.innerHTML = `

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Intelligence Core // DRILLDOWN_V8</title>
+    <title>Intelligence Core // DRILLDOWN_V8.1</title>
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -31,23 +31,22 @@
             z-index: 1; box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
         }
         .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; padding: 40px 0; }
-        .growth-card { position: relative; z-index: 10; transition: transform 0.3s ease; }
+        .growth-card { position: relative; z-index: 10; transition: transform 0.3s ease; cursor: pointer; }
         .growth-card:hover { transform: translateY(-8px); }
         .metric-bar { display: flex; gap: 6px; overflow-x: auto; padding: 5px 0; scrollbar-width: none; }
         .solo-header { grid-column: 1 / -1; padding: 40px 0; text-align: center; }
         .solo-header h2 { font-size: 3.5rem; color: var(--text-title); font-weight: 900; }
         .chart-container { height: 160px; margin-top: 15px; }
-        .delta-text { font-weight: 900; font-size: 0.75rem; margin-top: 4px; }
-        .positive { color: #10b981; }
-        .negative { color: #ef4444; }
+        .stat-label { font-size: 0.65rem; font-weight: 900; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 5px; }
+        .stat-value { font-family: 'Courier New', monospace; font-weight: 900; color: #fff; }
     </style>
 </head>
 <body>
 
-<div class="loading-overlay" id="loader"><div class="loading-text">REBUILDING_CORE_LOGIC...</div></div>
+<div class="loading-overlay" id="loader"><div class="loading-text">UNIFYING_LOGIC_STREAM...</div></div>
 
 <div class="app-container">
-    <div class="header-nav" id="headerNav">
+    <div class="header-nav">
         <div id="navActionContainer">
             <button class="exit-btn" onclick="window.location.href='index.html'">← SYSTEM_RETURN</button>
         </div>
@@ -114,9 +113,8 @@
 
         const res = await fetch('data/files.json');
         const fileListData = await res.json();
-        
-        // NUCLEAR LOAD: Force data structure to be explicit
         const folders = fileListData.iDataFolders;
+
         for (const folder of folders) {
             const fName = folder.name.replace('KVK', 'KvK');
             const files = folder.files;
@@ -128,7 +126,6 @@
                 const endVal = d2[id];
                 const startVal = d1[id] || d2[id]; 
                 
-                // Pure values for this specific KvK folder
                 let kvkGrowth = { label: fName };
                 let kvkTotal = { label: fName };
                 
@@ -159,39 +156,40 @@
         }).sort((a, b) => {
             const dataA = isGrowth ? a[1].growth : a[1].timeline;
             const dataB = isGrowth ? b[1].growth : b[1].timeline;
-            return dataB[dataB.length-1][currentSortMetric] - dataA[dataA.length-1][currentSortMetric];
+            return (dataB[dataB.length-1][currentSortMetric] || 0) - (dataA[dataA.length-1][currentSortMetric] || 0);
         });
 
         document.getElementById('subjectCount').textContent = `ACTIVE_MEMBERS // ${sorted.length}`;
 
         sorted.forEach(([id, data], index) => {
+            const activeSet = isGrowth ? data.growth : data.timeline;
+            const lastEntry = activeSet[activeSet.length - 1];
+            const displayVal = lastEntry[currentSortMetric];
+            
+            // UNIFIED LABELING: [METRIC] + [TYPE]
+            const labelSuffix = isGrowth ? " IN LAST KVK" : "";
+            const finalLabel = metrics[currentSortMetric] + labelSuffix;
+
             const card = document.createElement('div');
             card.className = "growth-card glow-purple";
             card.onclick = () => { selectedPlayerId = id; renderDisplay(); };
-            
-            const activeSet = isGrowth ? data.growth : data.timeline;
-            const lastPoint = activeSet[activeSet.length - 1];
-            const displayVal = lastPoint[currentSortMetric];
-            
-            // NUCLEAR LABEL FORCING
-            const label = isGrowth ? `${metrics[currentSortMetric]} IN LAST KVK` : metrics[currentSortMetric];
-
             card.innerHTML = `
                 <div class="rank-banner">#${index+1}</div>
                 <h3 style="margin:0; color:var(--text-title);">${data.name}</h3>
                 <div style="font-size:0.6rem; color:var(--text-dim);">ID: ${id}</div>
                 <div style="margin:20px 0;">
-                    <div class="stat-label" style="color:var(--accent-purple);">${label}</div>
+                    <div class="stat-label" style="color:var(--accent-purple);">${finalLabel}</div>
                     <div class="stat-value" style="font-size:1.4rem;">${displayVal.toLocaleString()}</div>
                 </div>
                 <div class="chart-container"><canvas id="chart-${id}"></canvas></div>
             `;
             grid.appendChild(card);
+            
             new Chart(document.getElementById(`chart-${id}`), {
                 type: 'line',
                 data: {
                     labels: activeSet.map(t => t.label),
-                    datasets: [{ data: activeSet.map(t => t[currentSortMetric]), borderColor: '#9333ea', tension: 0.3, fill: false }]
+                    datasets: [{ data: activeSet.map(t => t[currentSortMetric]), borderColor: '#9333ea', tension: 0.3, fill: false, pointRadius: 2 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
             });
@@ -208,31 +206,31 @@
         header.innerHTML = `
             <button class="exit-btn" onclick="selectedPlayerId=null; renderDisplay();">← RETURN_TO_GRID</button>
             <h2>${data.name}</h2>
-            <div class="stat-label">CRYPTO_ID: ${id}</div>
+            <div class="stat-label">ID: ${id}</div>
         `;
         grid.appendChild(header);
 
         Object.keys(metrics).forEach(mKey => {
             const activeSet = isGrowth ? data.growth : data.timeline;
-            
-            // SOLO MODE ONLY: Here we can use peak logic if we want, or keep it strict. 
-            // Rebuilding it strict to last-entry to match your request for "no more peak stuff".
-            const displayVal = isGrowth ? Math.max(...activeSet.map(t => t[mKey])) : activeSet[activeSet.length-1][mKey];
-            const label = isGrowth ? `PEAK ${metrics[mKey]} GAINED (SINGLE KVK)` : metrics[mKey];
+            const lastVal = activeSet[activeSet.length - 1][mKey];
+            const labelSuffix = isGrowth ? " IN LAST KVK" : "";
+            const finalLabel = metrics[mKey] + labelSuffix;
 
             const mini = document.createElement('div');
             mini.className = "growth-card glow-purple";
+            mini.style.cursor = "default";
             mini.innerHTML = `
-                <div class="stat-label">${label}</div>
-                <div class="stat-value" style="font-size:1.8rem;">${displayVal.toLocaleString()}</div>
+                <div class="stat-label">${finalLabel}</div>
+                <div class="stat-value" style="font-size:1.8rem;">${lastVal.toLocaleString()}</div>
                 <div class="chart-container"><canvas id="solo-${mKey}"></canvas></div>
             `;
             grid.appendChild(mini);
+            
             new Chart(document.getElementById(`solo-${mKey}`), {
                 type: 'line',
                 data: {
                     labels: activeSet.map(t => t.label),
-                    datasets: [{ data: activeSet.map(t => t[mKey]), borderColor: '#9333ea', tension: 0.3 }]
+                    datasets: [{ data: activeSet.map(t => t[mKey]), borderColor: '#9333ea', tension: 0.3, pointRadius: 4 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { display: false } } }
             });

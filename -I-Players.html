@@ -38,7 +38,8 @@
 </div>
 
 <script>
-    const BASE_PATH = "-I--Website/-I-Data/";
+    // CORRECTED BASE_PATH TO MATCH GITHUB REPOSITORY
+    const BASE_PATH = "-I-Data/"; 
     const POWER_FLOOR = 35000000;
     const MIN_SHEETS = 2; 
     const targetServers = ["167", "509"];
@@ -79,6 +80,7 @@
     async function init() {
         createMetricButtons();
         try {
+            // Ensure config.js is loaded or fetch the json file correctly
             const res = await fetch('data/files.json');
             if (!res.ok) throw new Error('Could not load files.json');
             
@@ -344,7 +346,9 @@
     }
 
     function createChart(canvasId, data, metricKey) {
-        const ctx = document.getElementById(canvasId).getContext('2d');
+        const canvas = document.getElementById(canvasId);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
         let graphTimeline = (isAllKvksMode) ? data.ends : data.timeline;
 
         new Chart(ctx, {

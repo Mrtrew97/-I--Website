@@ -177,17 +177,18 @@ function setMode(mode) {
 }
 
 async function init() {
+    // FORCE CLEAR SEARCH BOX TO PREVENT BROWSER AUTO-FILL
+    document.getElementById('playerSearch').value = "";
+    
     createMetricButtons();
     
-    // Check URL for direct ID access (My Stats button)
-    // REDIRECTION LOGIC MAINTAINED
+    // REDIRECTION LOGIC (Keeps direct links working)
     const urlParams = new URLSearchParams(window.location.search);
     const urlId = urlParams.get('id');
     
     if (urlId) {
         selectedPlayerId = urlId;
     } 
-    // AUTO-FILL FROM LOCALSTORAGE REMOVED HERE
 
     try {
         const res = await fetch('data/files.json');
@@ -437,7 +438,6 @@ function renderSoloMode(id, isGrowth) {
 
 function exitSoloMode() { 
     selectedPlayerId = null; 
-    // Clear the URL parameter so refreshing doesn't force you back into solo mode
     const url = new URL(window.location);
     url.searchParams.delete('id');
     window.history.replaceState({}, '', url);

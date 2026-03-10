@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Intelligence Core // DRILLDOWN_V8.2</title>
+<title>Intelligence Core // DRILLDOWN_V8.3</title>
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -38,9 +38,10 @@ z-index: 1; box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
 
 /* ALLIANCE TOGGLE SPECIFIC */
 .alliance-toggle {
-    margin-left: auto; display: flex; align-items: center; gap: 10px;
-    background: rgba(255,255,255,0.03); padding: 5px 15px; border-radius: 8px;
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.03); padding: 0 15px; border-radius: 50px;
     border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: 0.3s;
+    height: 34px;
 }
 .alliance-toggle:hover { background: rgba(255,255,255,0.08); }
 .alliance-toggle.active { border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.15); background: rgba(255,255,255,0.1); }
@@ -51,7 +52,7 @@ z-index: 1; box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
 .growth-card:hover { z-index: 11; transform: translateY(-8px); }
 .metric-bar { display: flex; gap: 6px; overflow-x: auto; padding: 5px 0; scrollbar-width: none; }
 
-/* REFIXED SOLO HEADER */
+/* SOLO HEADER & CONTROL ROW */
 .solo-header { 
     grid-column: 1 / -1; 
     padding: 60px 0; 
@@ -75,6 +76,12 @@ z-index: 1; box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
     font-weight: 900;
     margin-bottom: 25px;
     letter-spacing: 1px;
+}
+.solo-controls-row {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    justify-content: center;
 }
 
 .chart-container { height: 160px; margin-top: 15px; }
@@ -147,7 +154,8 @@ const metrics = {
 
 function toggleAllianceAverage() {
     showAllianceAvg = !showAllianceAvg;
-    document.getElementById('allianceToggle').classList.toggle('active', showAllianceAvg);
+    const btns = document.querySelectorAll('.alliance-toggle');
+    btns.forEach(btn => btn.classList.toggle('active', showAllianceAvg));
     renderDisplay();
 }
 
@@ -343,16 +351,21 @@ const data = weeklyData[id];
 const header = document.createElement('div');
 header.className = 'solo-header';
 
-// Refixed Stacked/Centered Header
 header.innerHTML = `
     <div class="stat-label" style="letter-spacing: 4px; color: var(--accent-purple); margin-bottom: 5px;">MEMBER_ANALYSIS</div>
     <h2>${data.latestStats.name}</h2>
     <div class="solo-label-id">ID: ${id}</div>
     
-    <div class="view-toggle-container" style="display: ${isAllKvksMode ? 'flex' : 'none'};">
-        <div id="pill-bg-solo" class="pill-slider"></div>
-        <button id="mode-total-solo" class="toggle-btn ${currentViewMode === 'total' ? 'active' : ''}" onclick="setMode('total')">TOTAL</button>
-        <button id="mode-growth-solo" class="toggle-btn ${currentViewMode === 'growth' ? 'active' : ''}" onclick="setMode('growth')">GROWTH</button>
+    <div class="solo-controls-row">
+        <div class="view-toggle-container" style="display: ${isAllKvksMode ? 'flex' : 'none'};">
+            <div id="pill-bg-solo" class="pill-slider"></div>
+            <button id="mode-total-solo" class="toggle-btn ${currentViewMode === 'total' ? 'active' : ''}" onclick="setMode('total')">TOTAL</button>
+            <button id="mode-growth-solo" class="toggle-btn ${currentViewMode === 'growth' ? 'active' : ''}" onclick="setMode('growth')">GROWTH</button>
+        </div>
+        <div class="alliance-toggle ${showAllianceAvg ? 'active' : ''}" onclick="toggleAllianceAverage()">
+            <span class="avg-dot"></span>
+            <span style="font-size: 0.65rem; font-weight: 900; color: #fff; letter-spacing: 1px;">ALLIANCE AVERAGE</span>
+        </div>
     </div>
 `;
 grid.appendChild(header);
@@ -394,17 +407,19 @@ function createChart(canvasId, timeline, metricKey, isSolo, isGrowthMode) {
 
     if (showAllianceAvg) {
         const avgSet = isGrowthMode ? allianceAverages.growthTimeline : allianceAverages.timeline;
-        datasets.push({
-            label: 'Alliance Average',
-            data: avgSet.map(t => t[metricKey]),
-            borderColor: 'rgba(255, 255, 255, 0.8)', 
-            pointRadius: isSolo ? 5 : 3, 
-            pointBackgroundColor: '#ffffff',
-            pointBorderColor: '#ffffff',
-            tension: 0.3, 
-            fill: false, 
-            borderWidth: 2
-        });
+        if (avgSet && avgSet.length > 0) {
+            datasets.push({
+                label: 'Alliance Average',
+                data: avgSet.map(t => t[metricKey]),
+                borderColor: 'rgba(255, 255, 255, 0.8)', 
+                pointRadius: isSolo ? 5 : 3, 
+                pointBackgroundColor: '#ffffff',
+                pointBorderColor: '#ffffff',
+                tension: 0.3, 
+                fill: false, 
+                borderWidth: 2
+            });
+        }
     }
 
     new Chart(ctx, {

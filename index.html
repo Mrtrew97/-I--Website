@@ -32,7 +32,8 @@ background: #0d0d0d; border: 1px solid var(--accent-purple);
 padding: 40px 30px; border-radius: 16px; width: 90%; max-width: 350px;
 box-shadow: 0 0 40px rgba(147, 51, 234, 0.3); text-align: center;
 }
-.modal-content h2 { color: var(--text-main); margin-bottom: 25px; font-size: 0.85rem; letter-spacing: 2px; font-weight: 900; }
+.modal-content h2 { color: var(--text-main); margin-bottom: 5px; font-size: 1.2rem; letter-spacing: 1px; font-weight: 900; }
+.modal-content .sub-tag { color: var(--accent-purple); font-size: 0.7rem; font-weight: 800; margin-bottom: 25px; text-transform: uppercase; letter-spacing: 2px; }
 
 .modal-input {
 width: 100%; background: #1a1a1a; border: 1px solid var(--border-color);
@@ -89,26 +90,24 @@ text-transform: uppercase; margin-top: 20px;
 
 <div class="modal-overlay" id="profileModal" onclick="toggleModal()">
 <div class="modal-content" onclick="event.stopPropagation()">
-<h2 id="modal-title">WELCOME TO ILLUMINAUGHTY</h2>
+    <h2 id="modal-title">WELCOME TO ILLUMINAUGHTY</h2>
+    <div id="modal-subtitle" class="sub-tag">SYSTEM_ACCESS_REQUIRED</div>
 
-<div id="auth-section">
-<input type="text" id="id-search" class="modal-input" placeholder="ENTER LORD_ID" onkeydown="if(event.key==='Enter') verifyLordId()">
-<button class="save-btn" onclick="verifyLordId()">Verify ID</button>
-</div>
+    <div id="auth-section">
+        <input type="text" id="id-search" class="modal-input" placeholder="ENTER LORD_ID" onkeydown="if(event.key==='Enter') verifyLordId()">
+        <button class="save-btn" onclick="verifyLordId()">Verify ID</button>
+    </div>
 
-<div id="control-section" style="display: none;">
-<div class="control-grid">
-                    <button class="action-btn" onclick="goToMyStats()">My Stats</button>
-                    <button class="action-btn" onclick="goToKvKStats()">My Current KvK</button>
-                    <button class="action-btn">sample_text_3</button>
-                    <button class="action-btn" onclick="window.location.href='#'">sample_text_1</button>
-                    <button class="action-btn" onclick="window.location.href='#'">sample_text_2</button>
-                    <button class="action-btn" onclick="window.location.href='#'">sample_text_3</button>
-</div>
-<button class="logout-btn" onclick="logout()">Terminate Session</button>
-</div>
+    <div id="control-section" style="display: none;">
+        <div class="control-grid">
+            <button class="action-btn" onclick="goToMyStats()">Old KvKs</button>
+            <button class="action-btn" onclick="goToKvKStats()">Current KvK</button>
+            <button class="action-btn">sample_text_3</button>
+        </div>
+        <button class="logout-btn" onclick="logout()">Terminate Session</button>
+    </div>
 
-<div id="search-status"></div>
+    <div id="search-status"></div>
 </div>
 </div>
 
@@ -150,80 +149,97 @@ const authSection = document.getElementById('auth-section');
 const controlSection = document.getElementById('control-section');
 
 function toggleModal() { 
-modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex'; 
-if (modal.style.display === 'none') statusDiv.innerText = "";
+    modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex'; 
+    if (modal.style.display === 'none') statusDiv.innerText = "";
 }
 
 function parseDate(f) { 
-    // Extracts date from path like "data/10-01-2026.csv"
     const fileName = f.split('/').pop();
     const p = fileName.replace('.csv','').split('-'); 
     return new Date(p[2], p[1]-1, p[0]); 
 }
 
 function updateUI() {
-const savedName = localStorage.getItem('alliance_user_name');
-const savedID = localStorage.getItem('alliance_user_id');
+    const savedName = localStorage.getItem('alliance_user_name');
+    const savedID = localStorage.getItem('alliance_user_id');
+    const savedTag = localStorage.getItem('alliance_user_tag');
 
-if (savedName) {
-document.getElementById('profile-icon').innerText = savedName.toUpperCase();
-document.getElementById('modal-title').innerText = "SESSION: " + savedName.toUpperCase();
-authSection.style.display = "none";
-controlSection.style.display = "block";
-document.getElementById('main-footer').innerHTML = `<span class="status-dot"></span> GOV_AUTH: ${savedName} [ID: ${savedID}]`;
-} else {
-document.getElementById('profile-icon').innerText = "INPUT ID";
-document.getElementById('modal-title').innerText = "WELCOME TO ILLUMINAUGHTY";
-authSection.style.display = "block";
-controlSection.style.display = "none";
-document.getElementById('main-footer').innerHTML = `<span class="status-dot"></span> SYSTEM ONLINE // MADE BY DADREW`;
-}
+    if (savedName) {
+        document.getElementById('profile-icon').innerText = savedName.toUpperCase();
+        document.getElementById('modal-title').innerText = savedName.toUpperCase();
+        document.getElementById('modal-subtitle').innerText = "FROM [" + (savedTag || "---") + "]";
+        authSection.style.display = "none";
+        controlSection.style.display = "block";
+        document.getElementById('main-footer').innerHTML = `<span class="status-dot"></span> GOV_AUTH: ${savedName} [ID: ${savedID}]`;
+    } else {
+        document.getElementById('profile-icon').innerText = "INPUT ID";
+        document.getElementById('modal-title').innerText = "WELCOME TO ILLUMINAUGHTY";
+        document.getElementById('modal-subtitle').innerText = "SYSTEM_ACCESS_REQUIRED";
+        authSection.style.display = "block";
+        controlSection.style.display = "none";
+        document.getElementById('main-footer').innerHTML = `<span class="status-dot"></span> SYSTEM ONLINE // MADE BY DADREW`;
+    }
 }
 
 window.onload = updateUI;
 
 async function verifyLordId() {
-const inputId = document.getElementById('id-search').value.trim();
-if (!inputId) return;
-statusDiv.innerText = "QUERYING_DATABASE...";
-try {
-const res = await fetch('data/files.json');
-const fileListData = await res.json();
+    const inputId = document.getElementById('id-search').value.trim();
+    if (!inputId) return;
+    statusDiv.innerText = "QUERYING_DATABASE...";
+    try {
+        const res = await fetch('data/files.json');
+        const fileListData = await res.json();
 
-// Get the newest file from mainDataFiles (data/ folder)
-const newestFile = [...fileListData.mainDataFiles].sort((a, b) => parseDate(b) - parseDate(a))[0];
+        const sortedFiles = [...fileListData.mainDataFiles].sort((a, b) => parseDate(b) - parseDate(a));
+        const newestFile = sortedFiles[0];
+        const oldestFile = sortedFiles[sortedFiles.length - 1];
 
-const csvResp = await fetch(newestFile);
-const csvText = await csvResp.text();
-const lines = csvText.split(/\r?\n/).filter(l => l.trim());
-const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-const idIdx = headers.findIndex(h => h === 'lord_id' || h === 'id');
-const nameIdx = headers.findIndex(h => h === 'name');
+        const csvResp = await fetch(newestFile);
+        const csvText = await csvResp.text();
+        const lines = csvText.split(/\r?\n/).filter(l => l.trim());
+        const headers = lines[0].toLowerCase().split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+        const idIdx = headers.findIndex(h => h === 'lord_id' || h === 'id');
+        const nameIdx = headers.findIndex(h => h === 'name');
 
-let found = null;
-for (let i = 1; i < lines.length; i++) {
-const cells = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-if (cells[idIdx] === inputId) { found = { name: cells[nameIdx], id: cells[idIdx] }; break; }
-}
+        let found = null;
+        for (let i = 1; i < lines.length; i++) {
+            const cells = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+            if (cells[idIdx] === inputId) { found = { name: cells[nameIdx], id: cells[idIdx] }; break; }
+        }
 
-if (found) {
-localStorage.setItem('alliance_user_name', found.name);
-localStorage.setItem('alliance_user_id', found.id);
-updateUI();
-statusDiv.innerText = "ACCESS GRANTED";
-} else { 
-statusDiv.innerText = "INVALID LORD_ID"; 
-}
-} catch (e) { 
-statusDiv.innerText = "CONNECTION_FAILURE"; 
-}
+        if (found) {
+            const oldCsvResp = await fetch(oldestFile);
+            const oldCsvText = await oldCsvResp.text();
+            const oldLines = oldCsvText.split(/\r?\n/).filter(l => l.trim());
+            const oldHeaders = oldLines[0].toLowerCase().split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            const tagIdx = oldHeaders.findIndex(h => h === 'alliance_tag');
+            
+            let tagFound = "---";
+            for (let j = 1; j < oldLines.length; j++) {
+                const oldCells = oldLines[j].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+                if (oldCells[idIdx] === inputId) { tagFound = oldCells[tagIdx]; break; }
+            }
+
+            localStorage.setItem('alliance_user_name', found.name);
+            localStorage.setItem('alliance_user_id', found.id);
+            localStorage.setItem('alliance_user_tag', tagFound);
+            updateUI();
+            statusDiv.innerText = "ACCESS GRANTED";
+        } else { 
+            statusDiv.innerText = "INVALID LORD_ID"; 
+        }
+    } catch (e) { 
+        statusDiv.innerText = "CONNECTION_FAILURE"; 
+    }
 }
 
 function logout() {
-localStorage.removeItem('alliance_user_name');
-localStorage.removeItem('alliance_user_id');
-updateUI();
-toggleModal(); 
+    localStorage.removeItem('alliance_user_name');
+    localStorage.removeItem('alliance_user_id');
+    localStorage.removeItem('alliance_user_tag');
+    updateUI();
+    toggleModal(); 
 }
 
 function goToMyStats() {

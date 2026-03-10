@@ -29,11 +29,42 @@
             flex-direction: column;
             justify-content: space-between;
             transition: transform 0.3s ease, border-color 0.3s ease;
+            background: rgba(255, 255, 255, 0.03); /* Default background if not in styles.css */
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
         }
         .bento-card:hover {
             transform: translateY(-5px);
             border-color: var(--accent-purple);
         }
+        
+        /* Profile Specific Styling */
+        .profile-input {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 5px 10px;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+        }
+        .profile-save-btn {
+            background: var(--accent-purple);
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .profile-display { color: var(--accent-purple); font-weight: bold; }
+
         .locked-card {
             cursor: not-allowed;
             opacity: 0.7;
@@ -93,6 +124,25 @@
             </h1>
         </div>
         <div class="bento-grid">
+            
+            <div class="growth-card bento-card" id="profile-card">
+                <div class="rank-banner rank-std-banner">GOVERNOR DATA</div>
+                <div id="profile-edit-mode">
+                    <div style="font-size: 1.5rem; margin-bottom: 10px;">🆔</div>
+                    <input type="text" id="gov-name" class="profile-input" placeholder="Governor Name">
+                    <input type="text" id="gov-id" class="profile-input" placeholder="Governor ID">
+                    <button class="profile-save-btn" onclick="saveProfile()">Initialize Profile</button>
+                </div>
+                <div id="profile-view-mode" style="display: none;">
+                    <div style="font-size: 1.5rem; margin-bottom: 10px;">👤</div>
+                    <h2 id="display-name" style="margin: 0; font-size: 1.3rem; color: var(--text-title);">Welcome</h2>
+                    <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 5px;">
+                        ID: <span id="display-id" class="profile-display"></span>
+                    </p>
+                    <div class="hint-text" style="cursor:pointer;" onclick="editProfile()">Update Credentials —></div>
+                </div>
+            </div>
+
             <a href="alliance-stats.html" class="growth-card bento-card">
                 <div class="rank-banner rank-std-banner">ACTIVE</div>
                 <div>
@@ -104,6 +154,7 @@
                 </div>
                 <div class="hint-text">Enable Logs —></div>
             </a>
+
             <a href="-I-Players.html" class="growth-card bento-card">
                 <div class="rank-banner rank-std-banner">ACTIVE</div>
                 <div>
@@ -115,6 +166,7 @@
                 </div>
                 <div class="hint-text">View Analytics —></div>
             </a>
+
             <a href="MatchupTracker.html" class="growth-card bento-card">
                 <div class="rank-banner rank-std-banner">ACTIVE</div>
                 <div>
@@ -126,21 +178,49 @@
                 </div>
                 <div class="hint-text">Enter Dashboard —></div>
             </a>
-            <a href="TopPerf.html" class="growth-card bento-card">
-                <div class="rank-banner rank-std-banner">ACTIVE</div>
-                <div>
-                    <div style="font-size: 1.5rem; margin-bottom: 15px;">🏆</div>
-                    <h2 style="margin: 0; font-size: 1.2rem; color: var(--text-title);">Top Performances</h2>
-                    <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 10px; line-height: 1.4;">
-                        Check the top players for each category overall or by alliance for this KvK.
-                    </p>
-                </div>
-                <div class="hint-text">Check Scoreboard —></div>
-            </a>
+
             <div class="home-footer">
                 <span class="status-dot"></span> SYSTEM ONLINE // 196+ DATA NODES SYNCED // MADE BY DADREW
             </div>
         </div>
     </div>
+
+    <script>
+        // Check for saved data on load
+        window.onload = function() {
+            const savedName = localStorage.getItem('alliance_user_name');
+            const savedID = localStorage.getItem('alliance_user_id');
+
+            if (savedName && savedID) {
+                showProfile(savedName, savedID);
+            }
+        };
+
+        function saveProfile() {
+            const name = document.getElementById('gov-name').value;
+            const id = document.getElementById('gov-id').value;
+
+            if(name && id) {
+                localStorage.setItem('alliance_user_name', name);
+                localStorage.setItem('alliance_user_id', id);
+                showProfile(name, id);
+            } else {
+                alert("Please enter both Name and ID.");
+            }
+        }
+
+        function showProfile(name, id) {
+            document.getElementById('display-name').innerText = "Gov. " + name;
+            document.getElementById('display-id').innerText = id;
+            
+            document.getElementById('profile-edit-mode').style.display = 'none';
+            document.getElementById('profile-view-mode').style.display = 'block';
+        }
+
+        function editProfile() {
+            document.getElementById('profile-edit-mode').style.display = 'block';
+            document.getElementById('profile-view-mode').style.display = 'none';
+        }
+    </script>
 </body>
 </html>

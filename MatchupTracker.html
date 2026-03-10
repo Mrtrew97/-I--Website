@@ -181,11 +181,11 @@
             font-size: 0.8rem; 
             margin-top: 12px; 
             outline: none !important; 
-            padding: 12px 8px 20px 8px; /* Added 20px bottom padding */
+            padding: 12px 8px 20px 8px;
             overflow: hidden; 
             appearance: none;
             text-align: center;
-            box-sizing: content-box; /* Ensures padding is added on top of the calculated size */
+            box-sizing: content-box;
         }
         
         .multi-select-box:focus { border: 1px solid var(--accent-purple); }
@@ -253,17 +253,26 @@
         }
         .metric-row {
             display: grid;
-            grid-template-columns: 1fr 180px 1fr;
+            grid-template-columns: 1fr 220px 1fr; /* Widened center for arrows */
             align-items: center;
             padding: 15px 0;
             border-top: 1px solid rgba(255,255,255,0.05);
         }
-        .col-a { text-align: center; font-size: 1.1rem; color: var(--color-cyan); font-weight: 800; }
-        .col-gap { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-        .col-b { text-align: center; font-size: 1.1rem; color: var(--color-gold); font-weight: 800; }
+        .col-a { text-align: center; font-size: 1.1rem; color: var(--color-cyan); font-weight: 800; display: flex; justify-content: flex-end; align-items: center; gap: 15px; }
+        .col-b { text-align: center; font-size: 1.1rem; color: var(--color-gold); font-weight: 800; display: flex; justify-content: flex-start; align-items: center; gap: 15px; }
+        
+        .col-gap { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; }
+        
         .metric-label-style { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
         .delta-value { font-weight: 900; font-size: 0.85rem; }
         
+        .indicator-arrow {
+            font-size: 1.4rem;
+            line-height: 1;
+            font-weight: 900;
+            user-select: none;
+        }
+
         .stat-label { font-size: 0.75rem; color: #d1cada; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
         .loading-overlay { position: fixed; inset: 0; background: rgba(3,0,5,0.98); display: none; justify-content: center; align-items: center; z-index: 2000; backdrop-filter: blur(10px); }
         .loading-text { color: var(--accent-purple); font-weight: 900; letter-spacing: 5px; font-size: 0.7rem; }
@@ -438,10 +447,7 @@
             const select = document.getElementById(id);
             const savedSelections = Array.from(select.selectedOptions).map(o => o.value);
             select.innerHTML = '';
-            
-            // Set size to count to show all items
             select.size = count;
-
             sortedSIDs.forEach(sid => {
                 const opt = document.createElement('option');
                 opt.value = sid; 
@@ -489,30 +495,34 @@
         const groupB = calculateHybrid(eSel.map(o => o.value), fileDataCache[sF], fileDataCache[eF]);
         document.getElementById('tagA').innerText = sSel.map(o => o.getAttribute('data-tag')).join(' + ');
         document.getElementById('tagB').innerText = eSel.map(o => o.getAttribute('data-tag')).join(' + ');
+        
         const container = document.getElementById('metricsDisplay');
         container.innerHTML = Object.entries(metrics).map(([key, label]) => {
             const diff = groupA[key] - groupB[key];
+            const arrowA = diff > 0 ? `<span class="indicator-arrow positive">←</span>` : '';
+            const arrowB = diff < 0 ? `<span class="indicator-arrow negative">→</span>` : '';
+            
             return `<div class="metric-row">
-                    <div class="col-a">${Math.round(groupA[key]).toLocaleString()}</div>
+                    <div class="col-a">
+                        ${Math.round(groupA[key]).toLocaleString()}
+                        ${arrowA}
+                    </div>
                     <div class="col-gap">
                         <span class="metric-label-style">${label}</span>
                         <span class="delta-value ${diff >= 0 ? 'positive' : 'negative'}">
                             ${(diff >= 0 ? '+' : '') + Math.round(diff).toLocaleString()}
                         </span>
                     </div>
-                    <div class="col-b">${Math.round(groupB[key]).toLocaleString()}</div>
+                    <div class="col-b">
+                        ${arrowB}
+                        ${Math.round(groupB[key]).toLocaleString()}
+                    </div>
                 </div>`;
         }).join('');
     }
 
     function showLoader(show) { document.getElementById('globalLoader').style.display = show ? 'flex' : 'none'; }
-    
-    function init() {
-        setupToggleLogic('allianceStart');
-        setupToggleLogic('allianceEnd');
-        scanFiles();
-    }
-
+    function init() { setupToggleLogic('allianceStart'); setupToggleLogic('allianceEnd'); scanFiles(); }
     window.onload = init;
 </script>
 </body>

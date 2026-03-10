@@ -6,6 +6,86 @@
     <title>Alliance Dashboard // CORE</title>
     <link rel="stylesheet" href="styles.css">
     <style>
+        /* PROFILE TRIGGER BUTTON */
+        .profile-trigger {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            background: rgba(147, 51, 234, 0.1);
+            border: 1px solid var(--accent-purple);
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 100;
+            transition: all 0.3s ease;
+            font-size: 1.2rem;
+            box-shadow: 0 0 15px rgba(147, 51, 234, 0.2);
+        }
+        .profile-trigger:hover {
+            background: var(--accent-purple);
+            box-shadow: 0 0 20px var(--accent-purple);
+            transform: scale(1.05);
+        }
+
+        /* MODAL / POPUP STYLES */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background: #0d0d0d;
+            border: 1px solid var(--accent-purple);
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 0 40px rgba(147, 51, 234, 0.3);
+            text-align: center;
+        }
+        .modal-content h2 { color: var(--text-main); margin-bottom: 20px; font-size: 1.2rem; letter-spacing: 1px; }
+        .modal-input {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid var(--border-color);
+            color: white;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            box-sizing: border-box;
+        }
+        .modal-input:focus { border-color: var(--accent-purple); outline: none; }
+        .save-btn {
+            width: 100%;
+            background: var(--accent-purple);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 900;
+            cursor: pointer;
+            text-transform: uppercase;
+        }
+        .close-btn {
+            margin-top: 15px;
+            display: block;
+            color: var(--text-dim);
+            font-size: 0.7rem;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+
+        /* EXISTING LAYOUT STYLES */
         .home-container {
             display: flex;
             flex-direction: column;
@@ -29,55 +109,10 @@
             flex-direction: column;
             justify-content: space-between;
             transition: transform 0.3s ease, border-color 0.3s ease;
-            background: rgba(255, 255, 255, 0.03); /* Default background if not in styles.css */
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 20px;
-            position: relative;
-            overflow: hidden;
         }
         .bento-card:hover {
             transform: translateY(-5px);
             border-color: var(--accent-purple);
-        }
-        
-        /* Profile Specific Styling */
-        .profile-input {
-            background: rgba(0,0,0,0.3);
-            border: 1px solid var(--border-color);
-            color: var(--text-main);
-            padding: 5px 10px;
-            border-radius: 4px;
-            width: 100%;
-            margin-bottom: 5px;
-            font-size: 0.8rem;
-        }
-        .profile-save-btn {
-            background: var(--accent-purple);
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            cursor: pointer;
-            font-weight: 800;
-            text-transform: uppercase;
-        }
-        .profile-display { color: var(--accent-purple); font-weight: bold; }
-
-        .locked-card {
-            cursor: not-allowed;
-            opacity: 0.7;
-            filter: grayscale(0.5);
-        }
-        .locked-card:hover {
-            transform: none;
-            border-color: var(--border-color);
-        }
-        .rank-locked-banner {
-            background: var(--text-dim) !important;
-            color: #000 !important;
-            opacity: 0.8;
         }
         .home-footer {
             grid-column: span 2;
@@ -116,6 +151,19 @@
     </style>
 </head>
 <body class="home-layout">
+
+    <div class="profile-trigger" onclick="toggleModal()" id="profile-icon">👤</div>
+
+    <div class="modal-overlay" id="profileModal">
+        <div class="modal-content">
+            <h2 id="modal-title">GOVERNOR IDENTIFICATION</h2>
+            <input type="text" id="gov-name" class="modal-input" placeholder="Governor Name">
+            <input type="text" id="gov-id" class="modal-input" placeholder="Governor ID">
+            <button class="save-btn" onclick="saveProfile()">Update Protocol</button>
+            <span class="close-btn" onclick="toggleModal()">Discard Changes</span>
+        </div>
+    </div>
+
     <div class="home-container">
         <div class="brand-header">
             <div class="stat-label" style="color: var(--accent-purple);">System Status: Authenticated</div>
@@ -123,26 +171,8 @@
                 ALLIANCE PROTOCOL <span style="color: var(--text-dim); font-weight: 200;">// CORE</span>
             </h1>
         </div>
-        <div class="bento-grid">
-            
-            <div class="growth-card bento-card" id="profile-card">
-                <div class="rank-banner rank-std-banner">GOVERNOR DATA</div>
-                <div id="profile-edit-mode">
-                    <div style="font-size: 1.5rem; margin-bottom: 10px;">🆔</div>
-                    <input type="text" id="gov-name" class="profile-input" placeholder="Governor Name">
-                    <input type="text" id="gov-id" class="profile-input" placeholder="Governor ID">
-                    <button class="profile-save-btn" onclick="saveProfile()">Initialize Profile</button>
-                </div>
-                <div id="profile-view-mode" style="display: none;">
-                    <div style="font-size: 1.5rem; margin-bottom: 10px;">👤</div>
-                    <h2 id="display-name" style="margin: 0; font-size: 1.3rem; color: var(--text-title);">Welcome</h2>
-                    <p style="color: var(--text-dim); font-size: 0.8rem; margin-top: 5px;">
-                        ID: <span id="display-id" class="profile-display"></span>
-                    </p>
-                    <div class="hint-text" style="cursor:pointer;" onclick="editProfile()">Update Credentials —></div>
-                </div>
-            </div>
 
+        <div class="bento-grid">
             <a href="alliance-stats.html" class="growth-card bento-card">
                 <div class="rank-banner rank-std-banner">ACTIVE</div>
                 <div>
@@ -179,6 +209,18 @@
                 <div class="hint-text">Enter Dashboard —></div>
             </a>
 
+            <a href="TopPerf.html" class="growth-card bento-card">
+                <div class="rank-banner rank-std-banner">ACTIVE</div>
+                <div>
+                    <div style="font-size: 1.5rem; margin-bottom: 15px;">🏆</div>
+                    <h2 style="margin: 0; font-size: 1.2rem; color: var(--text-title);">Top Performances</h2>
+                    <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 10px; line-height: 1.4;">
+                        Check the top players for each category overall or by alliance for this KvK.
+                    </p>
+                </div>
+                <div class="hint-text">Check Scoreboard —></div>
+            </a>
+
             <div class="home-footer">
                 <span class="status-dot"></span> SYSTEM ONLINE // 196+ DATA NODES SYNCED // MADE BY DADREW
             </div>
@@ -186,13 +228,25 @@
     </div>
 
     <script>
-        // Check for saved data on load
+        const modal = document.getElementById('profileModal');
+        
+        // Open/Close logic
+        function toggleModal() {
+            modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex';
+        }
+
+        // Load saved data immediately
         window.onload = function() {
             const savedName = localStorage.getItem('alliance_user_name');
             const savedID = localStorage.getItem('alliance_user_id');
 
-            if (savedName && savedID) {
-                showProfile(savedName, savedID);
+            if (savedName) {
+                document.getElementById('gov-name').value = savedName;
+                document.getElementById('modal-title').innerText = "GOVERNOR: " + savedName.toUpperCase();
+                document.getElementById('profile-icon').innerText = savedName.charAt(0).toUpperCase();
+            }
+            if (savedID) {
+                document.getElementById('gov-id').value = savedID;
             }
         };
 
@@ -203,23 +257,23 @@
             if(name && id) {
                 localStorage.setItem('alliance_user_name', name);
                 localStorage.setItem('alliance_user_id', id);
-                showProfile(name, id);
+                
+                // Visual update
+                document.getElementById('modal-title').innerText = "GOVERNOR: " + name.toUpperCase();
+                document.getElementById('profile-icon').innerText = name.charAt(0).toUpperCase();
+                
+                alert("Protocol Updated: Welcome, Gov. " + name);
+                toggleModal();
             } else {
-                alert("Please enter both Name and ID.");
+                alert("Please initialize both ID and Name fields.");
             }
         }
 
-        function showProfile(name, id) {
-            document.getElementById('display-name').innerText = "Gov. " + name;
-            document.getElementById('display-id').innerText = id;
-            
-            document.getElementById('profile-edit-mode').style.display = 'none';
-            document.getElementById('profile-view-mode').style.display = 'block';
-        }
-
-        function editProfile() {
-            document.getElementById('profile-edit-mode').style.display = 'block';
-            document.getElementById('profile-view-mode').style.display = 'none';
+        // Close modal if user clicks outside the box
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                toggleModal();
+            }
         }
     </script>
 </body>

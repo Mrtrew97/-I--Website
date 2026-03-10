@@ -180,15 +180,14 @@ async function init() {
     createMetricButtons();
     
     // Check URL for direct ID access (My Stats button)
+    // REDIRECTION LOGIC MAINTAINED
     const urlParams = new URLSearchParams(window.location.search);
     const urlId = urlParams.get('id');
     
     if (urlId) {
         selectedPlayerId = urlId;
-    } else {
-        const savedId = localStorage.getItem('alliance_user_id'); 
-        if (savedId) { document.getElementById('playerSearch').value = savedId; }
-    }
+    } 
+    // AUTO-FILL FROM LOCALSTORAGE REMOVED HERE
 
     try {
         const res = await fetch('data/files.json');

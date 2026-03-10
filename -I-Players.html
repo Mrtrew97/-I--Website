@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Intelligence Core // DRILLDOWN_V8</title>
+<title>Intelligence Core // DRILLDOWN_V8.1</title>
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
@@ -43,7 +43,7 @@ z-index: 1; box-shadow: 0 0 15px rgba(147, 51, 234, 0.4);
     border: 1px solid rgba(255,255,255,0.1); cursor: pointer; transition: 0.3s;
 }
 .alliance-toggle:hover { background: rgba(255,255,255,0.08); }
-.alliance-toggle.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.2); }
+.alliance-toggle.active { border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,0.15); background: rgba(255,255,255,0.1); }
 .avg-dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; display: inline-block; }
 
 .player-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 25px; padding: 40px 0; }
@@ -355,7 +355,13 @@ function createChart(canvasId, timeline, metricKey, isSolo, isGrowthMode) {
     const datasets = [{ 
         label: 'Player',
         data: timeline.map(t => t[metricKey]), 
-        borderColor: '#9333ea', pointRadius: isSolo ? 5 : 3, tension: 0.3, fill: false, borderWidth: 2 
+        borderColor: '#9333ea', 
+        pointRadius: isSolo ? 5 : 3, 
+        pointBackgroundColor: '#9333ea',
+        pointBorderColor: '#9333ea',
+        tension: 0.3, 
+        fill: false, 
+        borderWidth: 2 
     }];
 
     if (showAllianceAvg) {
@@ -363,7 +369,13 @@ function createChart(canvasId, timeline, metricKey, isSolo, isGrowthMode) {
         datasets.push({
             label: 'Alliance Average',
             data: avgSet.map(t => t[metricKey]),
-            borderColor: '#ffffff', borderDash: [5, 5], pointRadius: isSolo ? 3 : 0, tension: 0.3, fill: false, borderWidth: 1.5, opacity: 0.8
+            borderColor: 'rgba(255, 255, 255, 0.8)', 
+            pointRadius: isSolo ? 5 : 3, 
+            pointBackgroundColor: '#ffffff',
+            pointBorderColor: '#ffffff',
+            tension: 0.3, 
+            fill: false, 
+            borderWidth: 2
         });
     }
 

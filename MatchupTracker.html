@@ -8,7 +8,7 @@
     <style>
         :root {
             --main-width: 1400px;
-            --column-width: 340px; /* Standardized panel width */
+            --side-col-width: 300px; 
             --color-cyan: #22d3ee;
             --color-gold: #fbbf24;
             --color-title: #e2e8f0;
@@ -61,15 +61,14 @@
             background: transparent;
         }
 
-        /* Unified Grid System for perfect vertical centering */
-        .unified-grid {
+        /* ALIGNMENT FIX: Identical grid structure for both rows */
+        .alignment-grid {
             display: grid;
-            grid-template-columns: var(--column-width) 1fr var(--column-width);
+            grid-template-columns: var(--side-col-width) 1fr var(--side-col-width);
             max-width: var(--main-width);
             margin: 0 auto;
             gap: 20px;
             align-items: center;
-            justify-items: center; 
         }
 
         .primary-controls { 
@@ -85,8 +84,7 @@
         .custom-select-wrapper { 
             position: relative; 
             display: flex; 
-            /* 100% of column width minus the 40px padding of the panel below it */
-            width: calc(100% - 40px); 
+            width: 100%;
         }
 
         .custom-select-wrapper select { 
@@ -142,7 +140,7 @@
             background: var(--card-bg);
             border: 1px solid var(--border-color); 
             border-radius: 16px; 
-            padding: 20px; /* 20px padding on each side */
+            padding: 20px; 
             backdrop-filter: blur(10px); 
             box-sizing: border-box;
             text-align: center;
@@ -151,7 +149,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: var(--column-width); 
+            width: 100%; /* Fills the grid column */
         }
         
         .multi-select-box { 
@@ -249,6 +247,8 @@
         .col-b { display: flex; justify-content: flex-start; align-items: center; gap: 15px; font-size: 1.1rem; color: var(--color-gold); font-weight: 800; padding-left: 15px; }
         .col-gap { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         
+        .metric-label-style { font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; }
+        .delta-value { font-size: 0.8rem; font-weight: 900; }
         .indicator-arrow { font-size: 1.4rem; font-weight: 900; }
         .stat-label { font-size: 0.75rem; color: #d1cada; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 5px; }
         .loading-overlay { position: fixed; inset: 0; background: rgba(3,0,5,0.98); display: none; justify-content: center; align-items: center; z-index: 2000; }
@@ -270,7 +270,7 @@
         </div>
     </header>
     
-    <div class="unified-grid primary-controls">
+    <div class="alignment-grid primary-controls">
         <div class="custom-select-wrapper">
             <select id="dateStart" onchange="handleDateChange()"></select>
         </div>
@@ -280,7 +280,7 @@
         </div>
     </div>
 
-    <div class="unified-grid matchup-grid">
+    <div class="alignment-grid matchup-grid">
         <div class="alliance-select-panel">
             <span class="stat-label">COALITION_A</span>
             <select id="allianceStart" class="multi-select-box" multiple></select>
@@ -311,12 +311,22 @@
 <script>
     const POWER_THRESHOLD = 35000000;
     const metrics = {
-        'highest_power': 'Highest Power', 'merits': 'Merits', 'units_killed': 'Total Kills',
-        'killcount_t5': 'T5 Kills', 'killcount_t4': 'T4 Kills', 'killcount_t3': 'T3 Kills',
-        'killcount_t2': 'T2 Kills', 'killcount_t1': 'T1 Kills', 'units_dead': 'Deads',
-        'units_healed': 'Healed', 'gold_spent': 'Gold Spent', 'wood_spent': 'Wood Spent',
-        'stone_spent': 'Stone Spent', 'mana_spent': 'Mana Spent'
+        'highest_power': 'Highest Power',
+        'merits': 'Merits',
+        'units_killed': 'Total Kills',
+        'killcount_t5': 'T5 Kills',
+        'killcount_t4': 'T4 Kills',
+        'killcount_t3': 'T3 Kills',
+        'killcount_t2': 'T2 Kills',
+        'killcount_t1': 'T1 Kills',
+        'units_dead': 'Deads',
+        'units_healed': 'Healed',
+        'gold_spent': 'Gold Spent',
+        'wood_spent': 'Wood Spent',
+        'stone_spent': 'Stone Spent',
+        'mana_spent': 'Mana Spent'
     };
+    
     let fileDataCache = {}; 
     let masterAllianceMap = {}; 
     let fileListData = {};
@@ -387,11 +397,13 @@
     }
 
     async function handleDateChange() {
+        showLoader(true);
         const startFile = document.getElementById('dateStart').value;
         const endFile = document.getElementById('dateEnd').value;
         if (!fileDataCache[startFile]) fileDataCache[startFile] = parseCSV(await (await fetch(startFile)).text());
         if (!fileDataCache[endFile]) fileDataCache[endFile] = parseCSV(await (await fetch(endFile)).text());
         updateAllianceLists();
+        showLoader(false);
     }
 
     function updateAllianceLists() {

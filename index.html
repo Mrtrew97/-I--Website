@@ -34,7 +34,6 @@
         }
         .modal-content h2 { color: var(--text-main); margin-bottom: 25px; font-size: 0.85rem; letter-spacing: 2px; font-weight: 900; }
         
-        /* AUTH INPUT SECTION */
         .modal-input {
             width: 100%; background: #1a1a1a; border: 1px solid var(--border-color);
             color: white; padding: 12px; border-radius: 8px; box-sizing: border-box;
@@ -47,7 +46,6 @@
             cursor: pointer; text-transform: uppercase; margin-bottom: 10px;
         }
 
-        /* CONTROL GRID (MODERN LOOK) */
         .control-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -77,7 +75,6 @@
 
         #search-status { font-size: 0.65rem; margin-top: 15px; color: var(--accent-purple); font-weight: 800; text-transform: uppercase; min-height: 15px; }
 
-        /* GRID STYLES */
         .home-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
         .bento-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; width: 100%; max-width: 900px; margin-top: 40px; }
         .bento-card { text-decoration: none; min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; transition: 0.3s ease; background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; }
@@ -95,7 +92,7 @@
             <h2 id="modal-title">WELCOME TO ILLUMINAUGHTY</h2>
             
             <div id="auth-section">
-                <input type="text" id="id-search" class="modal-input" placeholder="ENTER LORD_ID">
+                <input type="text" id="id-search" class="modal-input" placeholder="ENTER LORD_ID" onkeydown="if(event.key==='Enter') verifyLordId()">
                 <button class="save-btn" onclick="verifyLordId()">Verify ID</button>
             </div>
 
@@ -152,6 +149,7 @@
 
         function toggleModal() { 
             modal.style.display = (modal.style.display === 'flex') ? 'none' : 'flex'; 
+            if (modal.style.display === 'none') statusDiv.innerText = "";
         }
 
         function updateUI() {
@@ -204,9 +202,17 @@
                     localStorage.setItem('alliance_user_id', found.id);
                     updateUI();
                     statusDiv.innerText = "ACCESS GRANTED";
-                    setTimeout(() => { toggleModal(); statusDiv.innerText = ""; }, 1000);
-                } else { statusDiv.innerText = "INVALID LORD_ID"; }
-            } catch (e) { statusDiv.innerText = "CONNECTION_FAILURE"; }
+                    
+                    // Close modal automatically after success
+                    setTimeout(() => { 
+                        toggleModal();
+                    }, 800);
+                } else { 
+                    statusDiv.innerText = "INVALID LORD_ID"; 
+                }
+            } catch (e) { 
+                statusDiv.innerText = "CONNECTION_FAILURE"; 
+            }
         }
 
         function logout() {
@@ -215,6 +221,9 @@
             updateUI();
             toggleModal();
         }
+
+        // Listen for storage changes (sync across tabs)
+        window.addEventListener('storage', updateUI);
     </script>
 </body>
 </html>

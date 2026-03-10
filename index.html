@@ -82,6 +82,7 @@ text-transform: uppercase; margin-top: 20px;
 .bento-card:hover { transform: translateY(-5px); border-color: var(--accent-purple); }
 .home-footer { grid-column: span 2; padding: 20px; border: 1px dashed var(--border-color); border-radius: 16px; text-align: center; font-size: 0.7rem; color: var(--text-dim); letter-spacing: 2px; font-weight: 800; background: rgba(147, 51, 234, 0.03); }
 .status-dot { width: 8px; height: 8px; background: var(--positive); border-radius: 50%; display: inline-block; margin-right: 10px; }
+.hidden { display: none !important; }
 </style>
 </head>
 <body class="home-layout">
@@ -100,9 +101,8 @@ text-transform: uppercase; margin-top: 20px;
 
     <div id="control-section" style="display: none;">
         <div class="control-grid">
-            <button class="action-btn" onclick="goToMyStats()">Old KvKs</button>
+            <button class="action-btn" id="btn-old-kvk" onclick="goToMyStats()">Old KvKs</button>
             <button class="action-btn" onclick="goToKvKStats()">Current KvK</button>
-            <button class="action-btn">sample_text_3</button>
         </div>
         <button class="logout-btn" onclick="logout()">Terminate Session</button>
     </div>
@@ -148,7 +148,6 @@ const statusDiv = document.getElementById('search-status');
 const authSection = document.getElementById('auth-section');
 const controlSection = document.getElementById('control-section');
 
-// Utility to parse CSV line correctly handling quotes and commas
 function parseCSVLine(line) {
     const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
     return line.split(regex).map(cell => cell.trim().replace(/^"|"$/g, ''));
@@ -169,11 +168,21 @@ function updateUI() {
     const savedName = localStorage.getItem('alliance_user_name');
     const savedID = localStorage.getItem('alliance_user_id');
     const savedTag = localStorage.getItem('alliance_user_tag');
+    const savedServer = localStorage.getItem('alliance_user_server');
 
     if (savedName) {
         document.getElementById('profile-icon').innerText = savedName.toUpperCase();
         document.getElementById('modal-title').innerText = savedName.toUpperCase();
         document.getElementById('modal-subtitle').innerText = "FROM [" + (savedTag || "---") + "]";
+        
+        // SERVER ACCESS CHECK
+        const oldKvkBtn = document.getElementById('btn-old-kvk');
+        if (savedServer === "509" || savedServer === "167") {
+            oldKvkBtn.classList.remove('hidden');
+        } else {
+            oldKvkBtn.classList.add('hidden');
+        }
+
         authSection.style.display = "none";
         controlSection.style.display = "block";
         document.getElementById('main-footer').innerHTML = `<span class="status-dot"></span> GOV_AUTH: ${savedName} [ID: ${savedID}]`;
@@ -197,12 +206,10 @@ async function verifyLordId() {
         const res = await fetch('data/files.json');
         const fileListData = await res.json();
 
-        // Newest for Name, Oldest for Tag
         const sortedFiles = [...fileListData.mainDataFiles].sort((a, b) => parseDate(b) - parseDate(a));
         const newestFile = sortedFiles[0];
         const oldestFile = sortedFiles[sortedFiles.length - 1];
 
-        // 1. Find User Name from newest file
         const csvResp = await fetch(newestFile);
         const csvText = await csvResp.text();
         const lines = csvText.split(/\r?\n/).filter(l => l.trim());
@@ -221,7 +228,6 @@ async function verifyLordId() {
         }
 
         if (found) {
-            // 2. Find Alliance Tag from oldest file
             const oldCsvResp = await fetch(oldestFile);
             const oldCsvText = await oldCsvResp.text();
             const oldLines = oldCsvText.split(/\r?\n/).filter(l => l.trim());
@@ -229,12 +235,15 @@ async function verifyLordId() {
             
             const oldIdIdx = oldHeaders.indexOf('lord_id') !== -1 ? oldHeaders.indexOf('lord_id') : oldHeaders.indexOf('id');
             const tagIdx = oldHeaders.indexOf('alliance_tag');
+            const serverIdx = oldHeaders.indexOf('home_server');
             
             let tagFound = "---";
+            let serverFound = "---";
             for (let j = 1; j < oldLines.length; j++) {
                 const oldCells = parseCSVLine(oldLines[j]);
                 if (oldCells[oldIdIdx] === inputId) {
                     tagFound = oldCells[tagIdx] || "---";
+                    serverFound = oldCells[serverIdx] || "---";
                     break;
                 }
             }
@@ -242,6 +251,7 @@ async function verifyLordId() {
             localStorage.setItem('alliance_user_name', found.name);
             localStorage.setItem('alliance_user_id', found.id);
             localStorage.setItem('alliance_user_tag', tagFound);
+            localStorage.setItem('alliance_user_server', serverFound);
             updateUI();
             statusDiv.innerText = "ACCESS GRANTED";
         } else { 
@@ -256,6 +266,7 @@ function logout() {
     localStorage.removeItem('alliance_user_name');
     localStorage.removeItem('alliance_user_id');
     localStorage.removeItem('alliance_user_tag');
+    localStorage.removeItem('alliance_user_server');
     updateUI();
     toggleModal(); 
 }

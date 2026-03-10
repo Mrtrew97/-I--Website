@@ -45,6 +45,7 @@
             position: relative;
             z-index: 10;
             transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+            cursor: pointer;
         }
 
         .growth-card:hover {
@@ -177,6 +178,13 @@
                 if (displayFiles.length > 1) startSelect.selectedIndex = 1;
                 
                 await processData();
+
+                // CHECK FOR URL PARAMETER ID
+                const urlParams = new URLSearchParams(window.location.search);
+                const targetId = urlParams.get('id');
+                if (targetId) {
+                    enterSoloMode(targetId);
+                }
             }
         } catch (e) { console.error(e); }
         showLoader(false);

@@ -76,32 +76,34 @@
         <div id="rowCountDisplay" style="font-weight:900; color: var(--accent-purple); font-size: 0.75rem;">ACTIVE_SUBJECTS: 0</div>
     </div>
 
-    <div id="fleetView">
-        <div class="sticky-wrapper">
-            <div class="primary-controls">
-                <div class="view-toggle-container">
-                    <input type="radio" name="vMode" id="vSnap" value="single" checked onchange="toggleMode()">
-                    <label for="vSnap">Snapshot</label>
-                    <input type="radio" name="vMode" id="vRange" value="range" onchange="toggleMode()">
-                    <label for="vRange">Progress</label>
-                    <div class="toggle-glider"></div>
-                </div>
-                
-                <div id="startPicker" class="hidden custom-select-wrapper">
-                    <select id="dateStart" onchange="processData()"></select>
-                </div>
-                <div class="custom-select-wrapper">
-                    <select id="dateEnd" onchange="processData()"></select>
-                </div>
-                <div class="custom-select-wrapper">
-                    <select id="allianceSelect" onchange="processData()">
-                        <option value="all">All Servers</option>
-                    </select>
-                </div>
-                <input type="text" id="playerSearch" class="search-box" placeholder="SCAN_SUBJECT_DATABASE..." oninput="filterAndRender()">
+    <div class="sticky-wrapper" id="controlWrapper">
+        <div class="primary-controls">
+            <div class="view-toggle-container">
+                <input type="radio" name="vMode" id="vSnap" value="single" checked onchange="toggleMode()">
+                <label for="vSnap">Snapshot</label>
+                <input type="radio" name="vMode" id="vRange" value="range" onchange="toggleMode()">
+                <label for="vRange">Progress</label>
+                <div class="toggle-glider"></div>
             </div>
-            <div class="metric-bar" id="metricBar"></div>
+            
+            <div id="startPicker" class="hidden custom-select-wrapper">
+                <select id="dateStart" onchange="processData()"></select>
+            </div>
+            <div class="custom-select-wrapper">
+                <select id="dateEnd" onchange="processData()"></select>
+            </div>
+            
+            <div class="custom-select-wrapper" id="allianceFilterWrap">
+                <select id="allianceSelect" onchange="processData()">
+                    <option value="all">All Servers</option>
+                </select>
+            </div>
+            <input type="text" id="playerSearch" class="search-box" placeholder="SCAN_SUBJECT_DATABASE..." oninput="filterAndRender()">
         </div>
+        <div class="metric-bar" id="metricBar"></div>
+    </div>
+
+    <div id="fleetView">
         <div class="player-grid" id="mainGrid"></div>
     </div>
 
@@ -116,6 +118,8 @@
     let currentTableData = [];
     let allianceTagMap = {}; 
     let fileListData = {};
+    let activeSoloId = null; // Track who we are looking at
+
     const metrics = {
         'highest_power': 'Highest Power', 'merits': 'Merits', 'units_killed': 'Total Kills',
         'killcount_t5': 'T5 Kills', 'killcount_t4': 'T4 Kills', 'killcount_t3': 'T3 Kills',
@@ -154,9 +158,7 @@
 
             const oldestFilePath = sortedPaths[0]; 
             const oldestRes = await fetch(oldestFilePath);
-            const oldestCSV = await oldestRes.text();
-            
-            updateAllianceList(oldestCSV);
+            updateAllianceList(await oldestRes.text());
 
             let displayFiles = [...fileListData.mainDataFiles].sort((a, b) => parseDate(b.split('/').pop()) - parseDate(a.split('/').pop()));
 
@@ -179,12 +181,9 @@
                 
                 await processData();
 
-                // CHECK FOR URL PARAMETER ID
                 const urlParams = new URLSearchParams(window.location.search);
                 const targetId = urlParams.get('id');
-                if (targetId) {
-                    enterSoloMode(targetId);
-                }
+                if (targetId) enterSoloMode(targetId);
             }
         } catch (e) { console.error(e); }
         showLoader(false);
@@ -224,6 +223,10 @@
                 });
             }
             filterAndRender();
+            
+            // If we are currently in solo mode, refresh that view too
+            if (activeSoloId) renderSoloData(activeSoloId);
+
         } catch (e) { console.error(e); }
         showLoader(false);
     }
@@ -245,7 +248,6 @@
 
         const select = document.getElementById('allianceSelect');
         select.innerHTML = '<option value="all">All Servers</option>';
-        
         allianceTagMap = {};
         Object.keys(serverMap).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(id => {
             const tags = serverMap[id];
@@ -303,13 +305,27 @@
     }
 
     function enterSoloMode(id) {
-        const row = currentTableData.find(r => r.lord_id === id);
-        if (!row) return;
+        activeSoloId = id;
         document.getElementById('fleetView').classList.add('hidden');
         document.getElementById('topNav').classList.add('hidden');
         document.getElementById('soloView').classList.remove('hidden');
+        
+        // Hide list-specific controls
+        document.getElementById('allianceFilterWrap').classList.add('hidden');
+        document.getElementById('playerSearch').classList.add('hidden');
+        document.getElementById('metricBar').classList.add('hidden');
+        
+        renderSoloData(id);
+        window.scrollTo(0,0);
+    }
+
+    function renderSoloData(id) {
+        const row = currentTableData.find(r => r.lord_id === id);
+        if (!row) return;
+        
         const header = document.getElementById('soloHeader');
         header.innerHTML = `<div><h1 style="margin:8px 0; font-size:3.5rem; font-weight:900; color:var(--text-title);">${row.name}</h1><div style="color:var(--text-dim); font-size:0.75rem; font-weight:900;">ID: ${row.lord_id} // SERVER: ${row.home_server} // ALLIANCE: [${row.alliance_tag}]</div></div><button class="exit-btn" onclick="exitSoloMode()">TERMINATE_VIEW</button>`;
+        
         const grid = document.getElementById('soloGrid'); grid.innerHTML = "";
         Object.keys(metrics).forEach(m => {
             const card = document.createElement('div'); card.className = "growth-card glow-purple"; 
@@ -318,16 +334,26 @@
             card.innerHTML = `<div class="stat-label">${metrics[m]}</div><div class="stat-value" style="font-size:1.8rem;">${val.toLocaleString()}</div>${diffHTML}`;
             grid.appendChild(card);
         });
-        window.scrollTo(0,0);
     }
 
     function exitSoloMode() { 
+        activeSoloId = null;
         document.getElementById('soloView').classList.add('hidden'); 
         document.getElementById('fleetView').classList.remove('hidden'); 
         document.getElementById('topNav').classList.remove('hidden'); 
+        
+        // Restore controls
+        document.getElementById('allianceFilterWrap').classList.remove('hidden');
+        document.getElementById('playerSearch').classList.remove('hidden');
+        document.getElementById('metricBar').classList.remove('hidden');
     }
     
-    function toggleMode() { const isRange = document.getElementById('vRange').checked; document.getElementById('startPicker').classList.toggle('hidden', !isRange); processData(); }
+    function toggleMode() { 
+        const isRange = document.getElementById('vRange').checked; 
+        document.getElementById('startPicker').classList.toggle('hidden', !isRange); 
+        processData(); 
+    }
+    
     function showLoader(s) { document.getElementById('globalLoader').style.display = s ? 'flex' : 'none'; }
     function parseDate(f) { const p = f.replace('.csv','').split('-'); return new Date(p[2], p[1]-1, p[0]); }
     function cleanCell(v) { return (v || "").replace(/^"|"$/g, '').trim(); }

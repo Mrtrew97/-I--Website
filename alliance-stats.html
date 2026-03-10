@@ -6,62 +6,56 @@
     <title>Alliance Intelligence // CORE_V2</title>
     <link rel="stylesheet" href="styles.css">
     <style>
-        /* CORE LAYERING & SPACING */
-        .app-container {
-            position: relative;
-            z-index: 1;
-        }
+        .app-container { position: relative; z-index: 1; }
 
         .sticky-wrapper {
             position: sticky; 
             top: 0; 
             z-index: 999; 
-            padding: 10px 0 20px 0;
-            background: transparent; 
-            backdrop-filter: blur(12px) saturate(150%);
-            -webkit-backdrop-filter: blur(12px) saturate(150%);
+            padding: 10px 20px;
+            background: rgba(13, 13, 13, 0.8); 
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border-color);
         }
 
         .primary-controls {
-            background: transparent; 
-            padding: 10px 0; 
-            border: none; 
             display: flex; 
             flex-wrap: wrap; 
-            gap: 10px; 
+            gap: 15px; 
             align-items: center;
-            margin-bottom: 20px;
-            box-shadow: none; 
         }
 
         .player-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
             gap: 25px;
-            padding: 40px 0; 
+            padding: 40px 20px; 
         }
 
         .growth-card {
-            position: relative;
-            z-index: 10;
-            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
             cursor: pointer;
         }
 
-        .growth-card:hover {
-            z-index: 11; 
-            transform: translateY(-8px);
-        }
+        .growth-card:hover { transform: translateY(-8px); }
 
         .metric-bar { 
             display: flex; 
             gap: 6px; 
             overflow-x: auto; 
-            padding: 5px 0; 
+            padding: 15px 0 5px 0; 
             scrollbar-width: none; 
+        }
+        
+        .solo-header {
+            padding: 40px 20px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
         }
 
         html { overflow-y: scroll; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -71,7 +65,7 @@
 </div>
 
 <div class="app-container">
-    <div class="header-nav" id="topNav" style="position: relative; z-index: 1000;">
+    <div class="header-nav" id="topNav">
         <a href="index.html" class="exit-btn">← SYSTEM_RETURN</a>
         <div id="rowCountDisplay" style="font-weight:900; color: var(--accent-purple); font-size: 0.75rem;">ACTIVE_SUBJECTS: 0</div>
     </div>
@@ -100,6 +94,7 @@
             </div>
             <input type="text" id="playerSearch" class="search-box" placeholder="SCAN_SUBJECT_DATABASE..." oninput="filterAndRender()">
         </div>
+        
         <div class="metric-bar" id="metricBar"></div>
     </div>
 
@@ -118,7 +113,7 @@
     let currentTableData = [];
     let allianceTagMap = {}; 
     let fileListData = {};
-    let activeSoloId = null; // Track who we are looking at
+    let activeSoloId = null;
 
     const metrics = {
         'highest_power': 'Highest Power', 'merits': 'Merits', 'units_killed': 'Total Kills',
@@ -223,10 +218,7 @@
                 });
             }
             filterAndRender();
-            
-            // If we are currently in solo mode, refresh that view too
             if (activeSoloId) renderSoloData(activeSoloId);
-
         } catch (e) { console.error(e); }
         showLoader(false);
     }
@@ -281,7 +273,6 @@
             if (rankPos === 1) { glow = "glow-1"; banner = "rank-1-banner"; }
             else if (rankPos === 2) { glow = "glow-2"; banner = "rank-2-banner"; }
             else if (rankPos === 3) { glow = "glow-3"; banner = "rank-3-banner"; }
-            else if (rankPos <= 10) { banner = "rank-high-banner"; }
 
             card.className = `growth-card ${glow}`;
             card.onclick = () => enterSoloMode(row.lord_id);
@@ -307,13 +298,13 @@
     function enterSoloMode(id) {
         activeSoloId = id;
         document.getElementById('fleetView').classList.add('hidden');
-        document.getElementById('topNav').classList.add('hidden');
         document.getElementById('soloView').classList.remove('hidden');
         
-        // Hide list-specific controls
+        // Hide only the filters that aren't useful in solo mode
         document.getElementById('allianceFilterWrap').classList.add('hidden');
         document.getElementById('playerSearch').classList.add('hidden');
         document.getElementById('metricBar').classList.add('hidden');
+        document.getElementById('rowCountDisplay').classList.add('hidden');
         
         renderSoloData(id);
         window.scrollTo(0,0);
@@ -324,11 +315,21 @@
         if (!row) return;
         
         const header = document.getElementById('soloHeader');
-        header.innerHTML = `<div><h1 style="margin:8px 0; font-size:3.5rem; font-weight:900; color:var(--text-title);">${row.name}</h1><div style="color:var(--text-dim); font-size:0.75rem; font-weight:900;">ID: ${row.lord_id} // SERVER: ${row.home_server} // ALLIANCE: [${row.alliance_tag}]</div></div><button class="exit-btn" onclick="exitSoloMode()">TERMINATE_VIEW</button>`;
+        header.innerHTML = `
+            <div>
+                <h1 style="margin:0; font-size:3.5rem; font-weight:900; color:var(--text-title);">${row.name}</h1>
+                <div style="color:var(--text-dim); font-size:0.75rem; font-weight:900; letter-spacing:1px;">
+                    ID: ${row.lord_id} // SERVER: ${row.home_server} // ALLIANCE: [${row.alliance_tag}]
+                </div>
+            </div>
+            <button class="exit-btn" onclick="exitSoloMode()" style="margin-bottom: 10px;">TERMINATE_VIEW</button>
+        `;
         
-        const grid = document.getElementById('soloGrid'); grid.innerHTML = "";
+        const grid = document.getElementById('soloGrid'); 
+        grid.innerHTML = "";
         Object.keys(metrics).forEach(m => {
-            const card = document.createElement('div'); card.className = "growth-card glow-purple"; 
+            const card = document.createElement('div'); 
+            card.className = "growth-card glow-purple"; 
             const val = parseInt(row[m]) || 0;
             let diffHTML = row._isDiff ? `<div class="diff-tag ${row._deltas[m] >= 0 ? 'positive' : 'negative'}" style="margin-top:8px; display:inline-block;">${row._deltas[m] >= 0 ? '▲' : '▼'} ${Math.abs(row._deltas[m]).toLocaleString()}</div>` : "";
             card.innerHTML = `<div class="stat-label">${metrics[m]}</div><div class="stat-value" style="font-size:1.8rem;">${val.toLocaleString()}</div>${diffHTML}`;
@@ -340,12 +341,11 @@
         activeSoloId = null;
         document.getElementById('soloView').classList.add('hidden'); 
         document.getElementById('fleetView').classList.remove('hidden'); 
-        document.getElementById('topNav').classList.remove('hidden'); 
         
-        // Restore controls
         document.getElementById('allianceFilterWrap').classList.remove('hidden');
         document.getElementById('playerSearch').classList.remove('hidden');
         document.getElementById('metricBar').classList.remove('hidden');
+        document.getElementById('rowCountDisplay').classList.remove('hidden');
     }
     
     function toggleMode() { 

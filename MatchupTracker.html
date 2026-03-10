@@ -8,6 +8,7 @@
     <style>
         :root {
             --main-width: 1400px;
+            --column-width: 300px; /* Standardized width for both dates and panels */
             --color-cyan: #22d3ee;
             --color-gold: #fbbf24;
             --color-title: #e2e8f0;
@@ -60,14 +61,15 @@
             background: transparent;
         }
 
-        /* Unified Grid System for alignment */
+        /* Standardized Grid System */
         .unified-grid {
             display: grid;
-            grid-template-columns: 300px 1fr 300px; /* Matched to matchup-grid */
+            grid-template-columns: var(--column-width) 1fr var(--column-width);
             max-width: var(--main-width);
             margin: 0 auto;
             gap: 20px;
             align-items: center;
+            justify-items: center; /* Forces children to center within their columns */
         }
 
         .primary-controls { 
@@ -83,7 +85,8 @@
         .custom-select-wrapper { 
             position: relative; 
             display: flex; 
-            width: 100%;
+            width: 100%; /* Spans the full 300px column */
+            max-width: var(--column-width);
         }
 
         .custom-select-wrapper select { 
@@ -103,6 +106,7 @@
             backdrop-filter: blur(10px);
             width: 100%;
             text-align: center;
+            text-align-last: center; /* Centers text in the select on some browsers */
         }
 
         .custom-select-wrapper::after {
@@ -145,7 +149,8 @@
             top: 20px;
             display: flex;
             flex-direction: column;
-            align-items: center; /* Centering coalition content */
+            align-items: center;
+            width: var(--column-width); /* Fixed 300px */
         }
         
         .multi-select-box { 
@@ -164,7 +169,7 @@
             overflow: hidden; 
             appearance: none;
             text-align: center;
-            box-sizing: content-box;
+            box-sizing: border-box; /* Better for fixed width sizing */
         }
         
         .multi-select-box option { 
@@ -185,6 +190,7 @@
             display: flex;
             flex-direction: column;
             gap: 10px;
+            width: 100%;
         }
 
         .hero-delta-view { 
@@ -214,7 +220,7 @@
         .vs-badge { 
             font-weight: 950; 
             color: var(--accent-purple); 
-            font-size: 1.5rem; /* Increased size */
+            font-size: 1.5rem; 
             letter-spacing: 4px; 
             text-transform: uppercase;
             text-align: center;
@@ -238,13 +244,14 @@
             border-top: 1px solid rgba(255,255,255,0.05);
         }
 
-        .col-a { display: flex; justify-content: flex-end; align-items: center; gap: 15px; font-size: 1.1rem; color: var(--color-cyan); font-weight: 800; }
-        .col-b { display: flex; justify-content: flex-start; align-items: center; gap: 15px; font-size: 1.1rem; color: var(--color-gold); font-weight: 800; }
+        .col-a { display: flex; justify-content: flex-end; align-items: center; gap: 15px; font-size: 1.1rem; color: var(--color-cyan); font-weight: 800; padding-right: 10px; }
+        .col-b { display: flex; justify-content: flex-start; align-items: center; gap: 15px; font-size: 1.1rem; color: var(--color-gold); font-weight: 800; padding-left: 10px; }
         .col-gap { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 4px; }
         
         .indicator-arrow { font-size: 1.4rem; font-weight: 900; }
-        .stat-label { font-size: 0.75rem; color: #d1cada; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; }
+        .stat-label { font-size: 0.75rem; color: #d1cada; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 5px; }
         .loading-overlay { position: fixed; inset: 0; background: rgba(3,0,5,0.98); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .loading-text { color: var(--accent-purple); font-weight: 900; letter-spacing: 5px; font-size: 0.7rem; }
         .positive { color: var(--positive); }
         .negative { color: var(--negative); }
     </style>

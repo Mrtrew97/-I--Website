@@ -47,11 +47,13 @@
             scrollbar-width: none; 
         }
         
+        /* CENTERED SOLO HEADER */
         .solo-header {
-            padding: 40px 20px 20px;
+            padding: 60px 20px 40px;
             display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
         }
 
         html { overflow-y: scroll; }
@@ -66,7 +68,9 @@
 
 <div class="app-container">
     <div class="header-nav" id="topNav">
-        <a href="index.html" class="exit-btn">← SYSTEM_RETURN</a>
+        <a href="index.html" class="exit-btn" id="btn-system-return">← SYSTEM_RETURN</a>
+        <button class="exit-btn hidden" id="btn-terminate-view" onclick="exitSoloMode()">TERMINATE_VIEW</button>
+        
         <div id="rowCountDisplay" style="font-weight:900; color: var(--accent-purple); font-size: 0.75rem;">ACTIVE_SUBJECTS: 0</div>
     </div>
 
@@ -300,7 +304,11 @@
         document.getElementById('fleetView').classList.add('hidden');
         document.getElementById('soloView').classList.remove('hidden');
         
-        // Hide only the filters that aren't useful in solo mode
+        // SWAP NAV BUTTONS
+        document.getElementById('btn-system-return').classList.add('hidden');
+        document.getElementById('btn-terminate-view').classList.remove('hidden');
+
+        // Hide non-solo filters
         document.getElementById('allianceFilterWrap').classList.add('hidden');
         document.getElementById('playerSearch').classList.add('hidden');
         document.getElementById('metricBar').classList.add('hidden');
@@ -316,13 +324,10 @@
         
         const header = document.getElementById('soloHeader');
         header.innerHTML = `
-            <div>
-                <h1 style="margin:0; font-size:3.5rem; font-weight:900; color:var(--text-title);">${row.name}</h1>
-                <div style="color:var(--text-dim); font-size:0.75rem; font-weight:900; letter-spacing:1px;">
-                    ID: ${row.lord_id} // SERVER: ${row.home_server} // ALLIANCE: [${row.alliance_tag}]
-                </div>
+            <h1 style="margin:0; font-size:3.5rem; font-weight:900; color:var(--text-title);">${row.name}</h1>
+            <div style="color:var(--text-dim); font-size:0.85rem; font-weight:900; letter-spacing:1px; margin-top: 10px;">
+                ID: ${row.lord_id} // SERVER: ${row.home_server} // ALLIANCE: [${row.alliance_tag}]
             </div>
-            <button class="exit-btn" onclick="exitSoloMode()" style="margin-bottom: 10px;">TERMINATE_VIEW</button>
         `;
         
         const grid = document.getElementById('soloGrid'); 
@@ -342,6 +347,10 @@
         document.getElementById('soloView').classList.add('hidden'); 
         document.getElementById('fleetView').classList.remove('hidden'); 
         
+        // RESTORE NAV BUTTONS
+        document.getElementById('btn-system-return').classList.remove('hidden');
+        document.getElementById('btn-terminate-view').classList.add('hidden');
+
         document.getElementById('allianceFilterWrap').classList.remove('hidden');
         document.getElementById('playerSearch').classList.remove('hidden');
         document.getElementById('metricBar').classList.remove('hidden');

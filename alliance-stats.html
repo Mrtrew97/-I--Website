@@ -125,6 +125,8 @@
         'units_healed': 'Healed', 'gold_spent': 'Gold Spent', 'wood_spent': 'Wood Spent',
         'stone_spent': 'Stone Spent', 'mana_spent': 'Mana Spent'
     };
+    
+    // Ensure this is properly initialized for use in parseCSV
     const numericFields = Object.keys(metrics);
 
     function init() {
@@ -196,7 +198,8 @@
 
         try {
             const endRes = await fetch(selB);
-            const endData = parseCSV(await endRes.text());
+            const endText = await endRes.text();
+            const endData = parseCSV(endText);
             
             let filteredRaw = Object.values(endData).filter(row => (parseInt(row.highest_power) || 0) >= 15000000);
             if (selectedServer !== "all") filteredRaw = filteredRaw.filter(row => row.home_server === selectedServer);
@@ -208,7 +211,8 @@
 
             if (isRange) {
                 const startRes = await fetch(selA);
-                const startData = parseCSV(await startRes.text());
+                const startText = await startRes.text();
+                const startData = parseCSV(startText);
                 currentTableData = currentTableData.map(newRow => {
                     const diffRow = { ...newRow, _isDiff: true, _deltas: {} };
                     const oldRow = startData[newRow.lord_id];
@@ -256,58 +260,13 @@
     }
 
     function filterAndRender() {
-            const query = document.getElementById('playerSearch').value.toLowerCase().trim();
-            
-            // Sorting logic based on mode
-            currentTableData.sort((a, b) => {
-                let valA = (a._isDiff && currentSort !== 'highest_power') ? (a._deltas[currentSort]||0) : (parseInt(a[currentSort])||0);
-                let valB = (b._isDiff && currentSort !== 'highest_power') ? (b._deltas[currentSort]||0) : (parseInt(b[currentSort])||0);
-                return valB - valA;
-            });
-    
-            currentTableData.forEach((row, idx) => row._globalRank = idx + 1);
-            let displayData = currentTableData.filter(row => (row.name || '').toLowerCase().includes(query) || (row.lord_id || '').toLowerCase().includes(query));
-    
-            document.getElementById('rowCountDisplay').innerText = `ACTIVE_SUBJECTS: ${displayData.length}`;
-            const container = document.getElementById('mainGrid');
-            container.innerHTML = ""; 
-    
-            displayData.forEach((row) => {
-                const rankPos = row._globalRank;
-                const card = document.createElement('div');
-                let glow = "glow-purple", banner = "rank-std-banner";
-                if (rankPos === 1) { glow = "glow-1"; banner = "rank-1-banner"; }
-                else if (rankPos === 2) { glow = "glow-2"; banner = "rank-2-banner"; }
-                else if (rankPos === 3) { glow = "glow-3"; banner = "rank-3-banner"; }
-    
-                card.className = `growth-card ${glow}`;
-                card.onclick = () => enterSoloMode(row.lord_id);
-    
-                // LOGIC: Show Delta in Progress mode, Total in Snapshot mode
-                const isProgressMode = row._isDiff && currentSort !== 'highest_power';
-                const displayValue = isProgressMode ? (row._deltas[currentSort] || 0) : (parseInt(row[currentSort]) || 0);
-                
-                // Format styling
-                const colorStyle = isProgressMode ? (displayValue >= 0 ? 'var(--positive)' : 'var(--negative)') : 'var(--text-title)';
-                const arrowPrefix = isProgressMode ? (displayValue >= 0 ? '▲ ' : '▼ ') : '';
-                
-                card.innerHTML = `
-                    <div class="rank-banner ${banner}">#${rankPos}</div>
-                    <div style="margin-bottom:18px; padding-right: 70px;">
-                        <h3 style="margin:0; font-size:1.7rem; font-weight:800; color:var(--text-title);">${row.name}</h3>
-                        <div style="font-size: 0.65rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-top:6px;">ID: ${row.lord_id}</div>
-                        <div style="color:var(--accent-purple); font-size:0.75rem; font-weight:900; margin-top:4px;">[${row.alliance_tag}]</div>
-                    </div>
-                    <div style="background:rgba(10, 2, 15, 0.5); padding:16px; border-radius:14px; border:1px solid var(--border-color);">
-                        <div class="stat-label">${metrics[currentSort]} ${isProgressMode ? '(GROWTH)' : ''}</div>
-                        <div style="display:flex; align-items:center;">
-                            <div class="stat-value" style="color:${colorStyle};">${arrowPrefix}${Math.abs(displayValue).toLocaleString()}</div>
-                        </div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
+        const query = document.getElementById('playerSearch').value.toLowerCase().trim();
+        
+        currentTableData.sort((a, b) => {
+            let valA = (a._isDiff && currentSort !== 'highest_power') ? (a._deltas[currentSort]||0) : (parseInt(a[currentSort])||0);
+            let valB = (b._isDiff && currentSort !== 'highest_power') ? (b._deltas[currentSort]||0) : (parseInt(b[currentSort])||0);
+            return valB - valA;
+        });
 
         currentTableData.forEach((row, idx) => row._globalRank = idx + 1);
         let displayData = currentTableData.filter(row => (row.name || '').toLowerCase().includes(query) || (row.lord_id || '').toLowerCase().includes(query));
@@ -327,11 +286,9 @@
             card.className = `growth-card ${glow}`;
             card.onclick = () => enterSoloMode(row.lord_id);
 
-            // Determine what value to show in the big text
             const isProgressMode = row._isDiff && currentSort !== 'highest_power';
             const displayValue = isProgressMode ? (row._deltas[currentSort] || 0) : (parseInt(row[currentSort]) || 0);
             
-            // Format the big value with Arrow and specific color
             const colorStyle = isProgressMode ? (displayValue >= 0 ? 'var(--positive)' : 'var(--negative)') : 'var(--text-title)';
             const arrowPrefix = isProgressMode ? (displayValue >= 0 ? '▲ ' : '▼ ') : '';
             
@@ -420,7 +377,11 @@
         const headers = splitCSVLine(lines[0]).map(h => cleanCell(h).toLowerCase());
         return lines.slice(1).reduce((acc, line) => {
             const cells = splitCSVLine(line); const row = {};
-            headers.forEach((h, i) => { let val = cleanCell(cells[i]); if (numericFields.includes(h)) val = val.replace(/,/g, ''); row[h] = val; });
+            headers.forEach((h, i) => { 
+                let val = cleanCell(cells[i]); 
+                if (numericFields.includes(h)) val = val.replace(/,/g, ''); 
+                row[h] = val; 
+            });
             if (row.lord_id) acc[row.lord_id] = row; return acc;
         }, {});
     }

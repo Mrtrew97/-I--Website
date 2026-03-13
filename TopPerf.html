@@ -279,9 +279,12 @@
         if (lines.length === 0) return [];
         const headers = lines[0].split(',').map(h => h.toLowerCase().replace(/["\s]/g, ''));
         return lines.slice(1).map(line => {
-            const cells = line.split(',');
+            // This regex handles commas inside quotes correctly
+            const cells = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
             const row = {};
-            headers.forEach((h, i) => { row[h] = cells[i] ? cells[i].replace(/^"|"$/g, '').trim() : ""; });
+            headers.forEach((h, i) => { 
+                row[h] = cells[i] ? cells[i].replace(/^"|"$/g, '').trim() : ""; 
+            });
             return row;
         });
     }
@@ -311,34 +314,29 @@
             if (!response.ok) throw new Error('Could not load files.json');
             
             fileListData = await response.json();
-            const foundFiles = fileListData.mainDataFiles;
+            
+            // Extract all files from all folders into a single array
+            const foundFiles = [];
+            fileListData.iDataFolders.forEach(folder => {
+                folder.files.forEach(file => foundFiles.push(file));
+            });
             
             if (foundFiles.length === 0) return;
-
-            const oldestFile = foundFiles[foundFiles.length-1];
-            const masterRes = await fetch(oldestFile);
-            const masterData = parseCSV(await masterRes.text());
-            
-            masterData.forEach(row => {
-                const sID = row.home_server;
-                if (sID && row.alliance_tag && !masterAllianceMap[sID]) {
-                    masterAllianceMap[sID] = row.alliance_tag;
-                }
-            });
-
-            document.getElementById('namingSourceLabel').innerText = `TAG_SOURCE: ${oldestFile.replace('.csv','')}`;
-
+    
             const sSelect = document.getElementById('dateStart');
             const eSelect = document.getElementById('dateEnd');
+            sSelect.innerHTML = '';
+            eSelect.innerHTML = '';
             
             foundFiles.forEach(file => {
                 const opt = document.createElement('option');
                 opt.value = file;
-                opt.textContent = file.replace('.csv','').replace('data/','');
+                // This line fixes the label to show only the filename
+                opt.textContent = file.split('/').pop().replace('.csv','');
                 sSelect.appendChild(opt.cloneNode(true));
                 eSelect.appendChild(opt);
             });
-
+    
             if(foundFiles.length > 1) {
                 sSelect.selectedIndex = 0;
                 eSelect.selectedIndex = foundFiles.length - 1;
@@ -376,17 +374,20 @@
     }
 
     function calculateRankings(startData, endData, metric) {
-        const startMap = new Map(startData.map(p => [p.lord_id, p]));
+        const startMap = new Map(startData.map(p => [p.lord_id || p.id, p]));
         fullPerformanceData = endData.map(pEnd => {
-            const pStart = startMap.get(pEnd.lord_id);
+            const pId = pEnd.lord_id || pEnd.id;
+            const pStart = startMap.get(pId);
+            
             if (!pStart || parseToNum(pEnd.highest_power) < POWER_THRESHOLD) return null;
+            
             const startVal = parseToNum(pStart[metric]);
             const endVal = parseToNum(pEnd[metric]);
-
+    
             return {
                 name: pEnd.name,
                 tag: pEnd.alliance_tag || '---',
-                server: pEnd.home_server || '',
+                server: pEnd.server || pEnd.home_server || '',
                 total: endVal,
                 growth: endVal - startVal
             };

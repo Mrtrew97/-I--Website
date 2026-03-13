@@ -315,13 +315,13 @@
             
             fileListData = await response.json();
             
-            // Extract all files from all folders into a single array
-            const foundFiles = [];
-            fileListData.iDataFolders.forEach(folder => {
-                folder.files.forEach(file => foundFiles.push(file));
-            });
+            // SWITCH: Use mainDataFiles instead of iDataFolders
+            const foundFiles = fileListData.mainDataFiles || [];
             
-            if (foundFiles.length === 0) return;
+            if (foundFiles.length === 0) {
+                console.error("No files found in mainDataFiles");
+                return;
+            }
     
             const sSelect = document.getElementById('dateStart');
             const eSelect = document.getElementById('dateEnd');
@@ -331,33 +331,47 @@
             foundFiles.forEach(file => {
                 const opt = document.createElement('option');
                 opt.value = file;
-                // This line fixes the label to show only the filename
+                // Cleans "data/12-03-2026.csv" -> "12-03-2026"
                 opt.textContent = file.split('/').pop().replace('.csv','');
                 sSelect.appendChild(opt.cloneNode(true));
                 eSelect.appendChild(opt);
             });
     
+            // Set default selection (Oldest to Newest)
             if(foundFiles.length > 1) {
                 sSelect.selectedIndex = 0;
                 eSelect.selectedIndex = foundFiles.length - 1;
             }
             
             await loadPerformanceData();
-        } catch (e) { console.error(e); }
+        } catch (e) { console.error("Scan failed:", e); }
         showLoader(false);
     }
 
     async function loadPerformanceData() {
-        const startFile = document.getElementById('dateStart').value;
-        const endFile = document.getElementById('dateEnd').value;
-        if (!startFile || !endFile) return;
-
-        if (!fileDataCache[startFile]) fileDataCache[startFile] = parseCSV(await (await fetch(startFile)).text());
-        if (!fileDataCache[endFile]) fileDataCache[endFile] = parseCSV(await (await fetch(endFile)).text());
-
-        updateAllianceDropdown();
-        calculateRankings(fileDataCache[startFile], fileDataCache[endFile], currentMetric);
-    }
+            const startFile = document.getElementById('dateStart').value;
+            const endFile = document.getElementById('dateEnd').value;
+            if (!startFile || !endFile) return;
+    
+            if (!fileDataCache[startFile]) fileDataCache[startFile] = parseCSV(await (await fetch(startFile)).text());
+            if (!fileDataCache[endFile]) fileDataCache[endFile] = parseCSV(await (await fetch(endFile)).text());
+    
+            // 1. Update the top-right label
+            const displayLabel = endFile.split('/').pop().replace('.csv','');
+            document.getElementById('namingSourceLabel').innerText = `TAG_SOURCE: ${displayLabel}`;
+    
+            // 2. Build the alliance map FIRST
+            fileDataCache[endFile].forEach(row => {
+                const sID = row.server || row.home_server;
+                if (sID && row.alliance_tag && !masterAllianceMap[sID]) {
+                    masterAllianceMap[sID] = row.alliance_tag;
+                }
+            });
+    
+            // 3. NOW update the dropdown and calculate rankings
+            updateAllianceDropdown();
+            calculateRankings(fileDataCache[startFile], fileDataCache[endFile], currentMetric);
+        }
 
     function updateAllianceDropdown() {
         const dropdown = document.getElementById('allianceFilter');

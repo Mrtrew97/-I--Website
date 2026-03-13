@@ -246,7 +246,10 @@ async function loadDynamicAllKvks() {
     const latestSheetData = parseCSV(await latestResp.text());
     const activeIds = Object.keys(latestSheetData).filter(id => parseInt(latestSheetData[id].highest_power) >= POWER_FLOOR);
 
-    masterTimelineLabels = folders.map(f => f.files[f.files.length - 1].replace('.csv', ''));
+    masterTimelineLabels = folders.map(f => {
+    const fullPath = f.files[f.files.length - 1];
+    return fullPath.split('/').pop().replace('.csv', '');
+});
     
     allianceAverages.timeline = new Array(folders.length).fill(null);
     allianceAverages.growthTimeline = new Array(folders.length).fill(null);
@@ -306,7 +309,7 @@ async function loadSingleFolder(folderName) {
     const latestData = parseCSV(await latestResp.text());
     const activeIds = Object.keys(latestData).filter(id => parseInt(latestData[id].highest_power) >= POWER_FLOOR);
 
-    masterTimelineLabels = files.map(f => f.replace('.csv',''));
+    masterTimelineLabels = files.map(f => f.split('/').pop().replace('.csv',''));
     allianceAverages.timeline = new Array(files.length).fill(null);
 
     for (let i = 0; i < files.length; i++) {

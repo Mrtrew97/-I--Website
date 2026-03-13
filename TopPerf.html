@@ -356,11 +356,9 @@
             if (!fileDataCache[startFile]) fileDataCache[startFile] = parseCSV(await (await fetch(startFile)).text());
             if (!fileDataCache[endFile]) fileDataCache[endFile] = parseCSV(await (await fetch(endFile)).text());
     
-            // 1. Update the top-right label
             const displayLabel = endFile.split('/').pop().replace('.csv','');
             document.getElementById('namingSourceLabel').innerText = `TAG_SOURCE: ${displayLabel}`;
     
-            // 2. Build the alliance map FIRST
             fileDataCache[endFile].forEach(row => {
                 const sID = row.server || row.home_server;
                 if (sID && row.alliance_tag && !masterAllianceMap[sID]) {
@@ -368,8 +366,12 @@
                 }
             });
     
-            // 3. NOW update the dropdown and calculate rankings
             updateAllianceDropdown();
+    
+            // FIX: Ensure the buttons reflect the currentMode after a metric change
+            document.getElementById('modeGrowth').classList.toggle('active', currentMode === 'growth');
+            document.getElementById('modeTotal').classList.toggle('active', currentMode === 'total');
+    
             calculateRankings(fileDataCache[startFile], fileDataCache[endFile], currentMetric);
         }
 

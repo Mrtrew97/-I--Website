@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" href="https://raw.githubusercontent.com/Mrtrew97/Illumi-Naughty/main/Header.png" type="image/png" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Alliance Dashboard // CORE</title>
+<title>Illumi-Naughty Database</title>
 <style>
 :root {
     --bg-color: #030005; 
@@ -162,7 +162,12 @@ html, body {
 .event-row { padding: 10px 0; border-bottom: 1px solid rgba(147, 51, 234, 0.1); cursor: pointer; transition: background 0.2s; }
 .event-row:hover { background: rgba(147, 51, 234, 0.05); }
 .event-name { font-size: 0.8rem; font-weight: 900; color: var(--text-title); display: block; }
-.event-time { font-size: 0.65rem; color: var(--text-dim); font-family: monospace; }
+.event-time { font-size: 0.8rem; color: var(--accent-purple); font-family: monospace; }
+
+/* Target the second row name (TO BE ADDED) specifically */
+#events-list .event-row:nth-child(2) .event-name {
+    font-size: 1.1rem;
+}
 
 /* FOOTER */
 .home-footer { 
@@ -393,16 +398,13 @@ function goToMyStats() {
     window.location.href = savedId ? `-I-Players.html?id=${savedId}` : '-I-Players.html';
 }
 
-// REDIRECT LOGIC: Only include ID if we aren't filtering by a specific alliance
 function goToKvKStats(allianceTag = null) {
     const savedId = localStorage.getItem('alliance_user_id');
     let url = 'alliance-stats.html';
     
     if (allianceTag) {
-        // If clicking an alliance, ONLY pass the alliance tag to avoid triggering Solo View
         url += `?alliance=${encodeURIComponent(allianceTag)}`;
     } else if (savedId) {
-        // If clicking the general "Current KvK" button, pass the ID for Solo View
         url += `?id=${savedId}`;
     }
     

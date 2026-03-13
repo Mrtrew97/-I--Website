@@ -241,7 +241,7 @@ async function handleFolderChange() {
 async function loadDynamicAllKvks() {
     const folders = fileListData.iDataFolders;
     const latestFolder = folders[folders.length - 1];
-    const latestPath = BASE_PATH + latestFolder.name.replace('KVK', 'KvK') + "/" + latestFolder.files[latestFolder.files.length - 1];
+    const latestPath = latestFolder.files[latestFolder.files.length - 1];
     const latestResp = await fetch(latestPath);
     const latestSheetData = parseCSV(await latestResp.text());
     const activeIds = Object.keys(latestSheetData).filter(id => parseInt(latestSheetData[id].highest_power) >= POWER_FLOOR);
@@ -257,10 +257,10 @@ async function loadDynamicAllKvks() {
         const files = folderMeta.files;
         if (files.length < 2) continue;
 
-        const [respOld, respNew] = await Promise.all([
-            fetch(BASE_PATH + fPathName + "/" + files[0]), 
-            fetch(BASE_PATH + fPathName + "/" + files[files.length - 1])
-        ]);
+    const [respOld, respNew] = await Promise.all([
+        fetch(files[0]), 
+        fetch(files[files.length - 1])
+    ]);
         const [dataOld, dataNew] = [parseCSV(await respOld.text()), parseCSV(await respNew.text())];
 
         let avgTotal = { label: masterTimelineLabels[i] }; let avgGrowth = { label: masterTimelineLabels[i] }; let count = 0;
@@ -302,8 +302,7 @@ async function loadDynamicAllKvks() {
 async function loadSingleFolder(folderName) {
     const folderMeta = fileListData.iDataFolders.find(f => f.name === folderName);
     const files = folderMeta.files;
-    const pathPrefix = BASE_PATH + folderName.replace('KVK', 'KvK') + "/";
-    const latestResp = await fetch(pathPrefix + files[files.length - 1]);
+    const latestResp = await fetch(files[files.length - 1]);
     const latestData = parseCSV(await latestResp.text());
     const activeIds = Object.keys(latestData).filter(id => parseInt(latestData[id].highest_power) >= POWER_FLOOR);
 
@@ -311,7 +310,7 @@ async function loadSingleFolder(folderName) {
     allianceAverages.timeline = new Array(files.length).fill(null);
 
     for (let i = 0; i < files.length; i++) {
-        const r = await fetch(pathPrefix + files[i]);
+        const r = await fetch(files[i]);
         const d = parseCSV(await r.text());
         let avgTotal = { label: masterTimelineLabels[i] }; let count = 0;
         Object.keys(metrics).forEach(m => avgTotal[m] = 0);

@@ -258,11 +258,14 @@
 
     function filterAndRender() {
         const query = document.getElementById('playerSearch').value.toLowerCase().trim();
+        
+        // Sorting logic: if Range is active, sort by growth (_deltas). If Snapshot, sort by total.
         currentTableData.sort((a, b) => {
             let valA = (a._isDiff && currentSort !== 'highest_power') ? (a._deltas[currentSort]||0) : (parseInt(a[currentSort])||0);
             let valB = (b._isDiff && currentSort !== 'highest_power') ? (b._deltas[currentSort]||0) : (parseInt(b[currentSort])||0);
             return valB - valA;
         });
+
         currentTableData.forEach((row, idx) => row._globalRank = idx + 1);
         let displayData = currentTableData.filter(row => (row.name || '').toLowerCase().includes(query) || (row.lord_id || '').toLowerCase().includes(query));
 
@@ -280,8 +283,18 @@
 
             card.className = `growth-card ${glow}`;
             card.onclick = () => enterSoloMode(row.lord_id);
-            const currentVal = parseInt(row[currentSort]) || 0;
-            let deltaHTML = row._isDiff ? `<span class="diff-tag ${row._deltas[currentSort] >= 0 ? 'positive' : 'negative'}">${row._deltas[currentSort] >= 0 ? '▲' : '▼'} ${Math.abs(row._deltas[currentSort]).toLocaleString()}</span>` : "";
+            
+            // The Main Value is ALWAYS the EndDate value (row[currentSort])
+            const endValue = parseInt(row[currentSort]) || 0;
+            
+            // The Growth/Delta is only shown if _isDiff is true
+            let deltaHTML = "";
+            if (row._isDiff) {
+                const growth = row._deltas[currentSort] || 0;
+                deltaHTML = `<span class="diff-tag ${growth >= 0 ? 'positive' : 'negative'}">
+                    ${growth >= 0 ? '▲' : '▼'} ${Math.abs(growth).toLocaleString()}
+                </span>`;
+            }
 
             card.innerHTML = `
                 <div class="rank-banner ${banner}">#${rankPos}</div>
@@ -292,7 +305,10 @@
                 </div>
                 <div style="background:rgba(10, 2, 15, 0.5); padding:16px; border-radius:14px; border:1px solid var(--border-color);">
                     <div class="stat-label">${metrics[currentSort]}</div>
-                    <div style="display:flex; align-items:center;"><div class="stat-value">${currentVal.toLocaleString()}</div>${deltaHTML}</div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="stat-value">${endValue.toLocaleString()}</div>
+                        ${deltaHTML}
+                    </div>
                 </div>
             `;
             container.appendChild(card);
@@ -304,11 +320,9 @@
         document.getElementById('fleetView').classList.add('hidden');
         document.getElementById('soloView').classList.remove('hidden');
         
-        // SWAP NAV BUTTONS
         document.getElementById('btn-system-return').classList.add('hidden');
         document.getElementById('btn-terminate-view').classList.remove('hidden');
 
-        // Hide non-solo filters
         document.getElementById('allianceFilterWrap').classList.add('hidden');
         document.getElementById('playerSearch').classList.add('hidden');
         document.getElementById('metricBar').classList.add('hidden');
@@ -335,9 +349,15 @@
         Object.keys(metrics).forEach(m => {
             const card = document.createElement('div'); 
             card.className = "growth-card glow-purple"; 
-            const val = parseInt(row[m]) || 0;
-            let diffHTML = row._isDiff ? `<div class="diff-tag ${row._deltas[m] >= 0 ? 'positive' : 'negative'}" style="margin-top:8px; display:inline-block;">${row._deltas[m] >= 0 ? '▲' : '▼'} ${Math.abs(row._deltas[m]).toLocaleString()}</div>` : "";
-            card.innerHTML = `<div class="stat-label">${metrics[m]}</div><div class="stat-value" style="font-size:1.8rem;">${val.toLocaleString()}</div>${diffHTML}`;
+            const endValue = parseInt(row[m]) || 0;
+            let diffHTML = "";
+            if (row._isDiff) {
+                const growth = row._deltas[m] || 0;
+                diffHTML = `<div class="diff-tag ${growth >= 0 ? 'positive' : 'negative'}" style="margin-top:8px; display:inline-block;">
+                    ${growth >= 0 ? '▲' : '▼'} ${Math.abs(growth).toLocaleString()}
+                </div>`;
+            }
+            card.innerHTML = `<div class="stat-label">${metrics[m]}</div><div class="stat-value" style="font-size:1.8rem;">${endValue.toLocaleString()}</div>${diffHTML}`;
             grid.appendChild(card);
         });
     }
@@ -347,7 +367,6 @@
         document.getElementById('soloView').classList.add('hidden'); 
         document.getElementById('fleetView').classList.remove('hidden'); 
         
-        // RESTORE NAV BUTTONS
         document.getElementById('btn-system-return').classList.remove('hidden');
         document.getElementById('btn-terminate-view').classList.add('hidden');
 

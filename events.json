@@ -1,6 +1,21 @@
 {
   "events": [
-    { "name": "TO BE ADDED ", "time": "14-03-2026 00:00" }
+    { "name": "MIASMA GIANT", "time": "16-03-2026 02:05" },
+    { "name": "PASS 1 (RUNIC STATUE)", "time": "17-03-2026 14:05" },
+    { "name": "RUNIC ANCESTOR STATUE", "time": "19-03-2026 14:05" },
+    { "name": "PASS 2", "time": "22-03-2026 14:05" },
+    { "name": "COSMIC ROC", "time": "26-03-2026 14:05" },
+    { "name": "SUPREME ANCESTOR STATUE", "time": "28-03-2026 14:05" },
+    { "name": "PASS 3", "time": "01-04-2026 15:05" },
+    { "name": "HYDRA", "time": "03-04-2026 15:05" },
+    { "name": "NECROGIANT", "time": "06-04-2026 15:05" },
+    { "name": "PASS 4 (FINAL ZONE)", "time": "08-04-2026 15:05" },
+    { "name": "DRAGON", "time": "10-04-2026 15:05" },
+    { "name": "MAGMA", "time": "14-04-2026 15:05" },
+    { "name": "LEVEL 5 PASS", "time": "16-04-2026 15:05" },
+    { "name": "WARBAND WITH CAMPS", "time": "18-04-2026 15:05" },
+    { "name": "LATE-SEASON SUMMARY", "time": "20-04-2026 03:05" }
+    
   ]
 
 }

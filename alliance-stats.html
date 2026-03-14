@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="icon" href="https://raw.githubusercontent.com/Mrtrew97/Illumi-Naughty/main/Header.png" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Alliance Intelligence // CORE_V2</title>
     <link rel="stylesheet" href="styles.css">
@@ -180,12 +179,10 @@
                 endSelect.selectedIndex = 0;
                 if (displayFiles.length > 1) startSelect.selectedIndex = 1;
 
-                // CHECK FOR URL PARAMETERS
                 const urlParams = new URLSearchParams(window.location.search);
                 const allianceToFilter = urlParams.get('alliance');
 
                 if (allianceToFilter) {
-                    // Look through options to find the one matching the tag
                     for (let i = 0; i < allianceSelect.options.length; i++) {
                         if (allianceSelect.options[i].text.includes(`[${allianceToFilter}]`) || 
                             allianceSelect.options[i].text.startsWith(allianceToFilter)) {
@@ -278,8 +275,9 @@
         const query = document.getElementById('playerSearch').value.toLowerCase().trim();
         
         currentTableData.sort((a, b) => {
-            let valA = (a._isDiff && currentSort !== 'highest_power') ? (a._deltas[currentSort]||0) : (parseInt(a[currentSort])||0);
-            let valB = (b._isDiff && currentSort !== 'highest_power') ? (b._deltas[currentSort]||0) : (parseInt(b[currentSort])||0);
+            // REMOVED: highest_power exclusion
+            let valA = a._isDiff ? (a._deltas[currentSort]||0) : (parseInt(a[currentSort])||0);
+            let valB = b._isDiff ? (b._deltas[currentSort]||0) : (parseInt(b[currentSort])||0);
             return valB - valA;
         });
 
@@ -301,7 +299,8 @@
             card.className = `growth-card ${glow}`;
             card.onclick = () => enterSoloMode(row.lord_id);
 
-            const isProgressMode = row._isDiff && currentSort !== 'highest_power';
+            // REMOVED: highest_power exclusion
+            const isProgressMode = row._isDiff;
             const displayValue = isProgressMode ? (row._deltas[currentSort] || 0) : (parseInt(row[currentSort]) || 0);
             
             const colorStyle = isProgressMode ? (displayValue >= 0 ? 'var(--positive)' : 'var(--negative)') : 'var(--text-title)';

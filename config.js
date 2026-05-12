@@ -1,7 +1,7 @@
 // AUTO-GENERATED - DO NOT EDIT MANUALLY
 const CONFIG = {
     "mainDataFiles": [
-        "data/12-03-2026.csv"
+        "data/08-05-2026.csv"
     ],
     "iDataFolders": [
         {

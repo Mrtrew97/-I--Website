@@ -1,7 +1,7 @@
 {
     "mainDataFiles": [
-        "08-05-2026.csv",
-        "11-05-2026.csv"
+        "data/08-05-2026.csv",
+        "data/11-05-2026.csv"
     ],
     "iDataFolders": [
         {
